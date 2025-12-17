@@ -41,7 +41,7 @@ export default function TaskItem({ task, onToggle, onEdit, onDelete }: TaskItemP
             <div className="flex flex-col gap-0.5">
                 <div className="font-medium text-slate-700 flex items-center gap-2 group-hover:text-slate-900 transition-colors">
                     {task.isMilestone && <Gem className="w-3.5 h-3.5 text-purple-500 animate-bounce-slow" />}
-                    {task.locked && <Lock className="w-3.5 h-3.5 text-amber-500" title="Tarea Bloqueada" />}
+                    {task.locked && <div title="Tarea Bloqueada"><Lock className="w-3.5 h-3.5 text-amber-500" /></div>}
                     {task.name}
                 </div>
                 {/* Mobile Meta */}
