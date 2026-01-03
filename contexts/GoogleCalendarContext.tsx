@@ -105,12 +105,19 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
     }, [token, settings.googleCalendarId, apiKey]);
 
     const createEvent = useCallback(async (event: Omit<CalendarEvent, 'id' | 'googleEventId'>) => {
-        if (!token || !settings.googleCalendarId) return;
+        if (!token) {
+            setError("No hay una sesión de Google activa. Por favor, vuelve a conectar.");
+            return;
+        }
+
+        const calendarId = settings.googleCalendarId || 'primary';
         setIsSyncing(true);
+        setError(null);
+
         try {
-            const calendarId = encodeURIComponent(settings.googleCalendarId || 'primary');
+            console.log("Attempting to create event in calendar:", calendarId);
             const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}`,
+                `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}`,
                 {
                     method: "POST",
                     headers: {
@@ -123,17 +130,31 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
                         location: event.location,
                         start: {
                             [event.allDay ? 'date' : 'dateTime']: event.start,
+                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                         },
                         end: {
                             [event.allDay ? 'date' : 'dateTime']: event.end,
+                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
                         },
                     }),
                 }
             );
-            if (!response.ok) throw new Error("Failed to create event");
-        } catch (err) {
-            console.error(err);
-            setError("Error al crear evento.");
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                console.error("Google Calendar API Error:", data);
+                if (data.error?.message === "Insufficient Permission") {
+                    throw new Error("No tienes permisos suficientes. Por favor, desconecta y vuelve a conectar tu cuenta de Google.");
+                }
+                throw new Error(data.error?.message || "Error desconocido al crear el evento.");
+            }
+
+            console.log("Event created successfully:", data);
+        } catch (err: any) {
+            console.error("Calendar creation catch block:", err);
+            setError(err.message || "Error al crear evento.");
+            throw err;
         } finally {
             setIsSyncing(false);
         }
