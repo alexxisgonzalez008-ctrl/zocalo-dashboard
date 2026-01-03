@@ -7,7 +7,8 @@ import {
     signInWithPopup,
     signOut,
     onAuthStateChanged,
-    User as FirebaseUser
+    User as FirebaseUser,
+    GoogleAuthProvider
 } from 'firebase/auth';
 
 interface User {
@@ -20,6 +21,7 @@ interface User {
 
 interface AuthContextType {
     user: User | null;
+    googleAccessToken: string | null;
     loginWithGoogle: () => Promise<void>;
     logout: () => Promise<void>;
     isLoading: boolean;
@@ -29,6 +31,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
+    const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -37,12 +40,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setUser({
                     id: firebaseUser.uid,
                     username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-                    role: 'admin', // In this version, all logged in users are admins of their own things
+                    role: 'admin',
                     avatar: firebaseUser.photoURL || undefined,
                     email: firebaseUser.email || undefined
                 });
             } else {
                 setUser(null);
+                setGoogleAccessToken(null);
             }
             setIsLoading(false);
         });
@@ -52,7 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const loginWithGoogle = async () => {
         try {
-            await signInWithPopup(auth, googleProvider);
+            const result = await signInWithPopup(auth, googleProvider);
+            const credential = GoogleAuthProvider.credentialFromResult(result);
+            if (credential) {
+                setGoogleAccessToken(credential.accessToken || null);
+            }
             toast.success("Sesión iniciada correctamente");
         } catch (error: any) {
             console.error("Error signing in with Google", error);
@@ -75,7 +83,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, loginWithGoogle, logout, isLoading }}>
+        <AuthContext.Provider value={{ user, googleAccessToken, loginWithGoogle, logout, isLoading }}>
             {children}
         </AuthContext.Provider>
     );

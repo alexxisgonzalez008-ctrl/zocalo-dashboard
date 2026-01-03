@@ -20,4 +20,11 @@ const storage = getStorage(app);
 const auth = getAuth(app);
 const googleProvider = new GoogleAuthProvider();
 
+// Google Calendar Credentials (Global Defaults)
+export const GOOGLE_CALENDAR_CLIENT_ID = "97657199919-hldrj62m5h8q4p47k6do5dm2cjj0hnih.apps.googleusercontent.com";
+export const GOOGLE_CALENDAR_API_KEY = "AIzaSyCD9O4q1cNyMonzPZm9OElhz7BtOed9H_w";
+
+// Request calendar access during initial login
+googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
+
 export { db, storage, auth, googleProvider };

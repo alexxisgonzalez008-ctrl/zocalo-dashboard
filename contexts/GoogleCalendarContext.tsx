@@ -2,6 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import { ProjectSettings, CalendarEvent } from "@/lib/types";
+import { useAuth } from "./AuthContext";
+import { GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_API_KEY } from "@/lib/firebase";
 
 interface GoogleCalendarContextType {
     isConnected: boolean;
@@ -16,34 +18,34 @@ interface GoogleCalendarContextType {
 const GoogleCalendarContext = createContext<GoogleCalendarContextType | undefined>(undefined);
 
 export function GoogleCalendarProvider({ children, settings }: { children: React.ReactNode, settings: ProjectSettings }) {
+    const { googleAccessToken } = useAuth();
     const [token, setToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Sync token from AuthContext
+    useEffect(() => {
+        if (googleAccessToken) {
+            setToken(googleAccessToken);
+        }
+    }, [googleAccessToken]);
+
     const isConnected = !!token;
 
-    // Load GIS script
-    useEffect(() => {
-        const script = document.createElement("script");
-        script.src = "https://accounts.google.com/gsi/client";
-        script.async = true;
-        script.defer = true;
-        document.body.appendChild(script);
-
-        return () => {
-            document.body.removeChild(script);
-        };
-    }, []);
+    // Use project settings or global defaults
+    const clientId = settings.googleClientId || GOOGLE_CALENDAR_CLIENT_ID;
+    const apiKey = settings.googleApiKey || GOOGLE_CALENDAR_API_KEY;
 
     const connect = useCallback(async () => {
-        if (!settings.googleClientId) {
+        if (!clientId) {
             setError("No se ha configurado el Client ID de Google.");
             return;
         }
 
         try {
+            // If we don't have a token from Firebase yet, we fall back to GIS
             const client = (window as any).google.accounts.oauth2.initTokenClient({
-                client_id: settings.googleClientId,
+                client_id: clientId,
                 scope: "https://www.googleapis.com/auth/calendar.events",
                 callback: (tokenResponse: any) => {
                     if (tokenResponse && tokenResponse.access_token) {
@@ -57,7 +59,7 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
             console.error(err);
             setError("Error al iniciar sesión con Google.");
         }
-    }, [settings.googleClientId]);
+    }, [clientId]);
 
     const disconnect = useCallback(() => {
         setToken(null);
@@ -69,7 +71,7 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
         try {
             const calendarId = encodeURIComponent(settings.googleCalendarId || 'primary');
             const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${settings.googleApiKey}`,
+                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -77,6 +79,10 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
                 }
             );
             const data = await response.json();
+
+            if (data.error) {
+                throw new Error(data.error.message);
+            }
 
             // Map Google events to our CalendarEvent type
             return (data.items || []).map((item: any) => ({
@@ -89,14 +95,14 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
                 description: item.description,
                 location: item.location,
             }));
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError("Error al obtener eventos.");
+            setError(err.message || "Error al obtener eventos.");
             return [];
         } finally {
             setIsSyncing(false);
         }
-    }, [token, settings.googleCalendarId, settings.googleApiKey]);
+    }, [token, settings.googleCalendarId, apiKey]);
 
     const createEvent = useCallback(async (event: Omit<CalendarEvent, 'id' | 'googleEventId'>) => {
         if (!token || !settings.googleCalendarId) return;
@@ -104,7 +110,7 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
         try {
             const calendarId = encodeURIComponent(settings.googleCalendarId || 'primary');
             const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${settings.googleApiKey}`,
+                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}`,
                 {
                     method: "POST",
                     headers: {
@@ -131,7 +137,21 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
         } finally {
             setIsSyncing(false);
         }
-    }, [token, settings.googleCalendarId, settings.googleApiKey]);
+    }, [token, settings.googleCalendarId, apiKey]);
+
+    // Load GIS script as fallback
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.src = "https://accounts.google.com/gsi/client";
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+
+        return () => {
+            const existingScript = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+            if (existingScript) document.body.removeChild(existingScript);
+        };
+    }, []);
 
     return (
         <GoogleCalendarContext.Provider value={{ isConnected, isSyncing, connect, disconnect, fetchEvents, createEvent, error }}>
