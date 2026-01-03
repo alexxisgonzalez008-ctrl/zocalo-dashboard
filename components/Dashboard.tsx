@@ -410,7 +410,10 @@ export default function Dashboard() {
                             </motion.div>
                         ) : activeTab === 'calendar' ? (
                             <motion.div key="calendar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                                <CalendarView onOpenSettings={() => setIsSettingsOpen(true)} />
+                                <CalendarView
+                                    onOpenSettings={() => setIsSettingsOpen(true)}
+                                    tasks={tasks}
+                                />
                             </motion.div>
                         ) : activeTab === 'financial' ? (
                             <motion.div key="financial" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

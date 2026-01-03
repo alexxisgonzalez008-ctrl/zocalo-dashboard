@@ -11,13 +11,14 @@ import {
     Truck,
     Users,
     MoreVertical,
+    ExternalLink,
+    ClipboardList,
     Clock,
-    MapPin,
-    ExternalLink
+    MapPin
 } from "lucide-react";
 import { useGoogleCalendar } from "@/contexts/GoogleCalendarContext";
-import { CalendarEvent, CalendarEventType } from "@/lib/types";
-import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isToday } from "date-fns";
+import { CalendarEvent, CalendarEventType, Task } from "@/lib/types";
+import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, endOfWeek, isToday, isWithinInterval } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -45,7 +46,7 @@ const TYPE_LABELS: Record<CalendarEventType, string> = {
     meeting: "Reunión de Obra"
 };
 
-export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () => void }) {
+export default function CalendarView({ onOpenSettings, tasks = [] }: { onOpenSettings?: () => void, tasks?: Task[] }) {
     const { isConnected, isSyncing, connect, fetchEvents, createEvent, error } = useGoogleCalendar();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [viewDate, setViewDate] = useState(new Date());
@@ -124,6 +125,15 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
 
     const filteredEvents = events.filter(e => selectedType === 'all' || e.type === selectedType);
 
+    // Helper to check if a day should display a task
+    const getTasksForDay = (day: Date) => {
+        return tasks.filter(t => {
+            const start = parseISO(t.start);
+            const end = parseISO(t.end);
+            return isWithinInterval(day, { start, end });
+        });
+    };
+
     return (
         <div className="space-y-6">
             {/* TOOLBAR */}
@@ -188,6 +198,7 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
                         {calendarDays.map((day, i) => {
                             const isCurrentMonth = isSameDay(startOfMonth(day), startOfMonth(viewDate));
                             const dayEvents = filteredEvents.filter(e => isSameDay(parseISO(e.start), day));
+                            const dayTasks = getTasksForDay(day);
 
                             return (
                                 <div
@@ -206,6 +217,19 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
                                         </span>
                                     </div>
                                     <div className="space-y-1">
+                                        {/* TASKS */}
+                                        {dayTasks.map(t => (
+                                            <div
+                                                key={t.id}
+                                                className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50 flex items-center gap-1 font-bold truncate"
+                                                title={`Tarea: ${t.name}`}
+                                            >
+                                                <ClipboardList className="w-2 h-2 shrink-0" />
+                                                <span className="truncate">{t.name}</span>
+                                            </div>
+                                        ))}
+
+                                        {/* GCAL EVENTS */}
                                         {dayEvents.map(e => (
                                             <div
                                                 key={e.id}
