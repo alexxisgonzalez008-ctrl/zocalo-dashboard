@@ -128,14 +128,18 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
                         summary: event.title,
                         description: `${event.description || ""}\n\nIslaraType:${event.type}`,
                         location: event.location,
-                        start: {
-                            [event.allDay ? 'date' : 'dateTime']: event.start,
-                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                        },
-                        end: {
-                            [event.allDay ? 'date' : 'dateTime']: event.end,
-                            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                        },
+                        start: event.allDay
+                            ? { date: event.start }
+                            : {
+                                dateTime: event.start,
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
+                        end: event.allDay
+                            ? { date: event.end }
+                            : {
+                                dateTime: event.end,
+                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                            },
                     }),
                 }
             );
