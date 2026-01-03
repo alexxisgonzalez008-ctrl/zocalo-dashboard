@@ -207,7 +207,7 @@ export default function Dashboard() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-2 md:gap-4 flex-1 justify-end">
+                        <div className="flex items-center gap-1 md:gap-2 flex-1 justify-end">
                             {/* TABS (Desktop) */}
                             <nav className="hidden lg:flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
                                 <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label="Panel" />
@@ -220,7 +220,7 @@ export default function Dashboard() {
                             </nav>
 
                             <div className="flex items-center gap-2">
-                                <div className="hidden xl:flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-3 py-1.5 w-48 border border-slate-200 dark:border-slate-700">
+                                <div className="hidden xl:flex items-center bg-slate-100 dark:bg-slate-800 rounded-lg px-2 py-1.5 w-32 xl:w-40 border border-slate-200 dark:border-slate-700">
                                     <Search className="w-4 h-4 text-slate-400 mr-2" />
                                     <input
                                         type="text"
@@ -230,7 +230,7 @@ export default function Dashboard() {
                                         onChange={(e) => setSearchTerm(e.target.value)}
                                     />
                                 </div>
-                                <div className="flex items-center gap-3 px-3 py-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200 dark:border-slate-700">
+                                <div className="flex items-center gap-2 px-2 py-1 bg-slate-100/50 dark:bg-slate-800/50 rounded-full border border-slate-200 dark:border-slate-700">
                                     {user.avatar ? (
                                         <img src={user.avatar} alt={user.username} className="w-6 h-6 rounded-full border border-emerald-500/20" />
                                     ) : (
@@ -429,14 +429,14 @@ function TabButton({ active, onClick, icon, label }: TabButtonProps) {
         <button
             onClick={onClick}
             className={cn(
-                "flex items-center gap-2 px-4 py-1.5 rounded-md text-sm font-medium transition-all",
+                "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs xl:text-sm font-medium transition-all whitespace-nowrap",
                 active
                     ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
             )}
         >
-            {icon}
-            <span>{label}</span>
+            <div className="flex-shrink-0">{icon}</div>
+            <span className="truncate">{label}</span>
         </button>
     );
 }
