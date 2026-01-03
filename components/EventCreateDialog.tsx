@@ -40,9 +40,8 @@ export default function EventCreateDialog({ isOpen, onClose, onSave }: EventCrea
     const [allDay, setAllDay] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    if (!isOpen) return null;
-
     const handleSubmit = async (e: React.FormEvent) => {
+        console.log("Submit event clicked", title);
         e.preventDefault();
         setIsSubmitting(true);
         try {
@@ -71,9 +70,12 @@ export default function EventCreateDialog({ isOpen, onClose, onSave }: EventCrea
     };
 
     return (
-        <AnimatePresence>
+        <AnimatePresence mode="wait">
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div
+                    className="fixed inset-0 z-[1000] flex items-center justify-center p-4"
+                    key="calendar-event-dialog"
+                >
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
