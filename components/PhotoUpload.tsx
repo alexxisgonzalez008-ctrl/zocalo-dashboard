@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
 import { Camera, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { storage } from '../firebase';
+import { storage } from '@/lib/firebase';
 import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 interface PhotoUploadProps {
