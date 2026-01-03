@@ -10,7 +10,7 @@ interface GoogleCalendarContextType {
     isSyncing: boolean;
     connect: () => Promise<void>;
     disconnect: () => void;
-    fetchEvents: () => Promise<CalendarEvent[]>;
+    fetchEvents: (timeMin?: string, timeMax?: string) => Promise<CalendarEvent[]>;
     createEvent: (event: Omit<CalendarEvent, 'id' | 'googleEventId'>) => Promise<void>;
     error: string | null;
 }
@@ -65,25 +65,31 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
         setToken(null);
     }, []);
 
-    const fetchEvents = useCallback(async () => {
-        if (!token || !settings.googleCalendarId) return [];
+    const fetchEvents = useCallback(async (timeMin?: string, timeMax?: string) => {
+        if (!token) return [];
         setIsSyncing(true);
+        setError(null);
         try {
-            const calendarId = encodeURIComponent(settings.googleCalendarId || 'primary');
-            const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?key=${apiKey}`,
-                {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                }
-            );
+            const calendarId = settings.googleCalendarId || 'primary';
+            let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}`;
+
+            if (timeMin) url += `&timeMin=${encodeURIComponent(timeMin)}`;
+            if (timeMax) url += `&timeMax=${encodeURIComponent(timeMax)}`;
+
+            console.log("Fetching events for calendar:", calendarId, { timeMin, timeMax });
+            const response = await fetch(url, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
             const data = await response.json();
 
             if (data.error) {
+                console.error("Fetch Events Error:", data.error);
                 throw new Error(data.error.message);
             }
 
+            console.log("Fetched events count:", (data.items || []).length);
             // Map Google events to our CalendarEvent type
             return (data.items || []).map((item: any) => ({
                 id: item.id,

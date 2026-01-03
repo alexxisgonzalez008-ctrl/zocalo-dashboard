@@ -53,7 +53,10 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const handleRefresh = async () => {
-        const data = await fetchEvents();
+        // Fetch events for the current month range (plus a bit of padding)
+        const start = startOfMonth(viewDate).toISOString();
+        const end = endOfMonth(viewDate).toISOString();
+        const data = await fetchEvents(start, end);
         setEvents(data);
     };
 
@@ -61,7 +64,7 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
         if (isConnected) {
             handleRefresh();
         }
-    }, [isConnected]);
+    }, [isConnected, viewDate]);
 
     if (!isConnected) {
         return (
