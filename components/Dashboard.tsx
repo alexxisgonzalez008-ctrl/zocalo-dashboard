@@ -19,8 +19,12 @@ import {
     Plus,
     Calendar as CalendarIcon,
     LogOut,
-    Home
+    Home,
+    UserPlus
 } from "lucide-react";
+import ShareDialog from "./ShareDialog";
+import { db } from "@/lib/firebase";
+import { doc, updateDoc, arrayUnion, getDoc } from "firebase/firestore";
 import { Task, TaskStatus, LogEntry, Project, ProjectSettings } from "@/lib/types";
 import { recalculateSchedule, isWorkday } from "@/lib/scheduler";
 import { INITIAL_TASKS } from "@/lib/data";
@@ -71,7 +75,38 @@ export default function Dashboard() {
     const [editingTask, setEditingTask] = useState<Task | null>(null);
     const [searchTerm, setSearchTerm] = useState("");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+    const [isShareOpen, setIsShareOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'kanban' | 'gantt' | 'financial' | 'analytics' | 'logs' | 'calendar'>('overview');
+
+    // Invitation Handling Logic
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const inviteId = urlParams.get('invite');
+
+        if (inviteId && user) {
+            const handleInvitation = async () => {
+                try {
+                    const projectListDoc = doc(db, 'projects_list', inviteId);
+                    const snapshot = await getDoc(projectListDoc);
+
+                    if (snapshot.exists()) {
+                        await updateDoc(projectListDoc, {
+                            members: arrayUnion(user.id)
+                        });
+                        toast.success(`Te has unido al proyecto: ${snapshot.data().name}`);
+                        // Clear param and select project
+                        window.history.replaceState({}, '', window.location.pathname);
+                        setSelectedProjectId(inviteId);
+                    } else {
+                        toast.error("El enlace de invitación ya no es válido");
+                    }
+                } catch (error) {
+                    console.error("Error joining project:", error);
+                }
+            };
+            handleInvitation();
+        }
+    }, [user, setSelectedProjectId]);
 
     // Initialize categories (Dynamic based on tasks)
     const categories = useMemo(() => {
@@ -242,6 +277,20 @@ export default function Dashboard() {
                                 </div>
                                 <ModeToggle />
                                 <button
+                                    onClick={() => setIsShareOpen(true)}
+                                    className="p-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                                    title="Compartir Proyecto"
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => setIsShareOpen(true)}
+                                    className="p-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
+                                    title="Compartir Proyecto"
+                                >
+                                    <UserPlus className="w-5 h-5" />
+                                </button>
+                                <button
                                     onClick={() => setIsSettingsOpen(true)}
                                     className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
                                 >
@@ -385,6 +434,12 @@ export default function Dashboard() {
                 </main>
 
                 {/* MODALS */}
+                <ShareDialog
+                    isOpen={isShareOpen}
+                    onClose={() => setIsShareOpen(false)}
+                    projectId={selectedProjectId || ''}
+                    projectName={projectSettings.title}
+                />
                 {!!editingTask && (
                     <TaskEditDialog
                         task={Object.keys(editingTask).length === 0 ? undefined : editingTask}
