@@ -1,7 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { format } from 'date-fns';
-import { Camera, X, Image as ImageIcon } from 'lucide-react';
+import { Camera, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { storage } from '../firebase';
+import { ref, uploadString, getDownloadURL } from 'firebase/storage';
 
 interface PhotoUploadProps {
     photos: string[];
@@ -36,14 +38,19 @@ export default function PhotoUpload({ photos, onPhotosChange }: PhotoUploadProps
                 if (!file.type.startsWith('image/')) continue;
 
                 const compressed = await compressImage(file);
-                newPhotos.push(compressed);
 
-                // Auto-download compressed version
-                const filename = `evidencia_${format(new Date(), 'yyyyMMdd_HHmm')}_${i + 1}.jpg`;
-                downloadPhoto(compressed, filename);
+                // Upload to Firebase Storage
+                const filename = `photos/${Date.now()}_${i + 1}.jpg`;
+                const storageRef = ref(storage, filename);
+
+                // Upload base64 string
+                await uploadString(storageRef, compressed, 'data_url');
+                const downloadURL = await getDownloadURL(storageRef);
+
+                newPhotos.push(downloadURL);
             }
             onPhotosChange([...photos, ...newPhotos]);
-            toast.success(`${newPhotos.length} foto(s) agregada(s) y descargada(s)`);
+            toast.success(`${newPhotos.length} foto(s) subida(s) a la nube`);
         } catch (error) {
             console.error(error);
             toast.error("Error al procesar imágenes");
@@ -82,10 +89,10 @@ export default function PhotoUpload({ photos, onPhotosChange }: PhotoUploadProps
                 <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isCompressing}
-                    className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
+                    className="text-xs bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors disabled:opacity-50"
                 >
-                    <Camera className="w-3.5 h-3.5" />
-                    {isCompressing ? 'Procesando...' : 'Agregar Foto'}
+                    {isCompressing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                    {isCompressing ? 'Subiendo...' : 'Agregar Foto'}
                 </button>
                 <input
                     ref={fileInputRef}
