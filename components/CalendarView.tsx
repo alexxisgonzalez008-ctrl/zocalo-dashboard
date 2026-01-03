@@ -43,7 +43,7 @@ const TYPE_LABELS: Record<CalendarEventType, string> = {
     meeting: "Reunión de Obra"
 };
 
-export default function CalendarView() {
+export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () => void }) {
     const { isConnected, isSyncing, connect, fetchEvents, createEvent, error } = useGoogleCalendar();
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [viewDate, setViewDate] = useState(new Date());
@@ -62,23 +62,47 @@ export default function CalendarView() {
 
     if (!isConnected) {
         return (
-            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800">
-                <CalendarIcon className="w-16 h-16 text-slate-300 dark:text-slate-700 mb-4" />
-                <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200 mb-2">Google Calendar no conectado</h3>
-                <p className="text-slate-500 dark:text-slate-400 text-center max-w-md mb-6">
-                    Conecta tu calendario para gestionar hitos, inspecciones, entregas y reuniones directamente desde el dashboard.
+            <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 transition-all">
+                <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 rounded-full flex items-center justify-center mb-6">
+                    <CalendarIcon className="w-10 h-10 text-blue-500" />
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-2 tracking-tight">Google Calendar no conectado</h3>
+                <p className="text-slate-500 dark:text-slate-400 text-center max-w-sm mb-8 leading-relaxed">
+                    Sincroniza tu calendario para gestionar hitos, entregas y reuniones directamente desde Zócalo.
                 </p>
-                <button
-                    onClick={connect}
-                    className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95"
-                >
-                    <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" className="w-5 h-5" alt="GCal" />
-                    Conectar con Google Calendar
-                </button>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                    <button
+                        onClick={connect}
+                        className="flex items-center justify-center gap-2 px-8 py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+                    >
+                        <img src="https://www.gstatic.com/images/branding/product/1x/calendar_2020q4_48dp.png" className="w-5 h-5 grayscale-0" alt="GCal" />
+                        Conectar ahora
+                    </button>
+                    {onOpenSettings && (
+                        <button
+                            onClick={onOpenSettings}
+                            className="flex items-center justify-center gap-2 px-8 py-3.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-black transition-all active:scale-95"
+                        >
+                            Ir a Configuración
+                        </button>
+                    )}
+                </div>
+
                 {error && (
-                    <div className="mt-4 flex items-center gap-2 text-red-500 text-sm bg-red-50 dark:bg-red-950/20 px-4 py-2 rounded-lg border border-red-100 dark:border-red-900/30">
-                        <AlertCircle className="w-4 h-4" />
-                        {error}
+                    <div className="mt-8 flex flex-col items-center gap-3">
+                        <div className="flex items-center justify-center gap-2 text-red-500 text-sm font-bold bg-red-50 dark:bg-red-950/20 px-6 py-3 rounded-xl border border-red-100 dark:border-red-900/30">
+                            <AlertCircle className="w-4 h-4" />
+                            {error}
+                        </div>
+                        <a
+                            href="https://console.cloud.google.com/apis/credentials"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-500 hover:underline font-medium flex items-center gap-1"
+                        >
+                            <ExternalLink className="w-3 h-3" /> Obtener Client ID en Google Cloud
+                        </a>
                     </div>
                 )}
             </div>
