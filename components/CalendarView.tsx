@@ -21,6 +21,8 @@ import { format, parseISO, isSameDay, startOfMonth, endOfMonth, eachDayOfInterva
 import { es } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import EventCreateDialog from "./EventCreateDialog";
+import { toast } from "sonner";
 
 const TYPE_COLORS: Record<CalendarEventType, string> = {
     milestone: "bg-red-500",
@@ -48,6 +50,7 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
     const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [viewDate, setViewDate] = useState(new Date());
     const [selectedType, setSelectedType] = useState<CalendarEventType | 'all'>('all');
+    const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
     const handleRefresh = async () => {
         const data = await fetchEvents();
@@ -163,6 +166,7 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
                     </button>
                     <button
                         className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-all active:scale-95 text-sm"
+                        onClick={() => setIsCreateDialogOpen(true)}
                     >
                         <Plus className="w-4 h-4" /> Nuevo Evento
                     </button>
@@ -264,6 +268,20 @@ export default function CalendarView({ onOpenSettings }: { onOpenSettings?: () =
                     </div>
                 </div>
             </div>
+
+            <EventCreateDialog
+                isOpen={isCreateDialogOpen}
+                onClose={() => setIsCreateDialogOpen(false)}
+                onSave={async (eventData) => {
+                    try {
+                        await createEvent(eventData);
+                        toast.success("Evento creado exitosamente");
+                        handleRefresh();
+                    } catch (err) {
+                        toast.error("Error al crear el evento");
+                    }
+                }}
+            />
         </div>
     );
 }
