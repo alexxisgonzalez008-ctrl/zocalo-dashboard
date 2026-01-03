@@ -16,7 +16,11 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-export default function LoginPage() {
+interface LoginPageProps {
+    onBack?: () => void;
+}
+
+export default function LoginPage({ onBack }: LoginPageProps) {
     const { loginWithGoogle, isLoading } = useAuth();
 
     return (
@@ -30,14 +34,24 @@ export default function LoginPage() {
                         </div>
                         <span className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">ZÓCALO</span>
                     </div>
-                    <button
-                        onClick={() => loginWithGoogle()}
-                        disabled={isLoading}
-                        className="hidden md:flex items-center gap-2 bg-slate-900 dark:bg-emerald-600 text-white px-5 py-2.5 rounded-full font-bold hover:bg-slate-800 dark:hover:bg-emerald-700 transition-all shadow-md active:scale-95 disabled:opacity-50"
-                    >
-                        Ingresar
-                        <ArrowRight className="w-4 h-4" />
-                    </button>
+                    <div className="flex items-center gap-4">
+                        {onBack && (
+                            <button
+                                onClick={onBack}
+                                className="text-sm font-bold text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                            >
+                                Volver
+                            </button>
+                        )}
+                        <button
+                            onClick={() => loginWithGoogle()}
+                            disabled={isLoading}
+                            className="hidden md:flex items-center gap-2 bg-slate-900 dark:bg-emerald-600 text-white px-5 py-2.5 rounded-full font-bold hover:bg-slate-800 dark:hover:bg-emerald-700 transition-all shadow-md active:scale-95 disabled:opacity-50"
+                        >
+                            Ingresar
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </div>
                 </div>
             </nav>
 
