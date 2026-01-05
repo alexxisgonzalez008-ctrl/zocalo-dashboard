@@ -48,6 +48,16 @@ import LoginPage from "./LoginPage";
 import { GoogleCalendarProvider } from "@/contexts/GoogleCalendarContext";
 import CalendarView from "./CalendarView";
 import { cn } from "@/lib/utils";
+
+const NAV_TABS = [
+    { id: 'overview', label: 'Panel', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'kanban', label: 'Tablero', icon: <Kanban className="w-4 h-4" /> },
+    { id: 'gantt', label: 'Gantt', icon: <CalendarDays className="w-4 h-4" /> },
+    { id: 'calendar', label: 'Agenda', icon: <CalendarIcon className="w-4 h-4" /> },
+    { id: 'financial', label: 'Pesos', icon: <Wallet className="w-4 h-4" /> },
+    { id: 'analytics', label: 'Métricas', icon: <BarChart2 className="w-4 h-4" /> },
+    { id: 'logs', label: 'Bitácora', icon: <BookOpen className="w-4 h-4" /> },
+];
 import { useDashboardState } from "@/lib/hooks/useDashboardState";
 
 export default function Dashboard() {
@@ -245,13 +255,15 @@ export default function Dashboard() {
                         <div className="flex items-center gap-1 md:gap-2 flex-1 justify-end">
                             {/* TABS (Desktop) */}
                             <nav className="hidden lg:flex bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<LayoutDashboard className="w-4 h-4" />} label="Panel" />
-                                <TabButton active={activeTab === 'kanban'} onClick={() => setActiveTab('kanban')} icon={<Kanban className="w-4 h-4" />} label="Tablero" />
-                                <TabButton active={activeTab === 'gantt'} onClick={() => setActiveTab('gantt')} icon={<CalendarDays className="w-4 h-4" />} label="Cronograma" />
-                                <TabButton active={activeTab === 'calendar'} onClick={() => setActiveTab('calendar')} icon={<CalendarIcon className="w-4 h-4" />} label="Calendario" />
-                                <TabButton active={activeTab === 'financial'} onClick={() => setActiveTab('financial')} icon={<Wallet className="w-4 h-4" />} label="Finanzas" />
-                                <TabButton active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} icon={<BarChart2 className="w-4 h-4" />} label="Métricas" />
-                                <TabButton active={activeTab === 'logs'} onClick={() => setActiveTab('logs')} icon={<BookOpen className="w-4 h-4" />} label="Bitácora" />
+                                {NAV_TABS.map(tab => (
+                                    <TabButton
+                                        key={tab.id}
+                                        active={activeTab === tab.id}
+                                        onClick={() => setActiveTab(tab.id as any)}
+                                        icon={tab.icon}
+                                        label={tab.label}
+                                    />
+                                ))}
                             </nav>
 
                             <div className="flex items-center gap-2">
@@ -481,6 +493,31 @@ export default function Dashboard() {
                         <Plus className="w-8 h-8" />
                     </button>
                 </div>
+                {/* MOBILE NAVIGATION */}
+                <nav className="lg:hidden fixed bottom-1 left-0 right-0 z-[60] px-3 pb-safe">
+                    <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/50 dark:border-slate-800/50 rounded-2xl shadow-xl flex items-center justify-around p-1 max-w-lg mx-auto overflow-x-auto no-scrollbar">
+                        {NAV_TABS.map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id as any)}
+                                className={cn(
+                                    "flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all flex-1 min-w-[50px]",
+                                    activeTab === tab.id
+                                        ? "text-emerald-600 dark:text-emerald-400 bg-emerald-50/50 dark:bg-emerald-400/10"
+                                        : "text-slate-500 dark:text-slate-400"
+                                )}
+                            >
+                                <div className={cn(
+                                    "p-1.5 rounded-lg mb-0.5",
+                                    activeTab === tab.id ? "bg-emerald-100 dark:bg-emerald-400/20" : ""
+                                )}>
+                                    {React.cloneElement(tab.icon as React.ReactElement, { className: "w-5 h-5 shadow-sm" })}
+                                </div>
+                                <span className="text-[10px] font-bold tracking-tight">{tab.label}</span>
+                            </button>
+                        ))}
+                    </div>
+                </nav>
             </div>
         </GoogleCalendarProvider>
     );
