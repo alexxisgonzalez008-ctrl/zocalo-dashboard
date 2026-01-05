@@ -10,7 +10,7 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [logs, setLogs] = useState<LogEntry[]>([]);
     const [projectSettings, setProjectSettings] = useState<ProjectSettings>({
-        title: "Cargando...",
+        title: "...",
         subtitle: "Gestión de Obra",
         totalBudget: 0
     });
@@ -30,14 +30,23 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
                 const data = snapshot.data();
                 if (data.tasks) setTasks(data.tasks);
                 if (data.logs) setLogs(data.logs);
-                if (data.settings) setProjectSettings(data.settings);
+                if (data.settings) {
+                    setProjectSettings(data.settings);
+                } else {
+                    // Fallback settings if document exists but settings field is missing
+                    setProjectSettings(prev => ({ ...prev, title: "Proyecto Sin Nombre" }));
+                }
                 if (data.rainDays) setRainDays(data.rainDays);
             } else {
                 // Initialize if project doesn't exist in Firestore
                 setTasks(INITIAL_TASKS);
                 setLogs([]);
                 setRainDays([]);
-                // Note: projectSettings will be set via ProjectSelector or a default
+                setProjectSettings({
+                    title: "Nuevo Proyecto",
+                    subtitle: "Gestión de Obra",
+                    totalBudget: 0
+                });
             }
             setIsLoaded(true);
         }, (error) => {
