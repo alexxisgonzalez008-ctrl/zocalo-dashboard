@@ -54,7 +54,7 @@ const NAV_TABS = [
     { id: 'kanban', label: 'Tablero', icon: <Kanban className="w-4 h-4" /> },
     { id: 'gantt', label: 'Gantt', icon: <CalendarDays className="w-4 h-4" /> },
     { id: 'calendar', label: 'Agenda', icon: <CalendarIcon className="w-4 h-4" /> },
-    { id: 'financial', label: 'Pesos', icon: <Wallet className="w-4 h-4" /> },
+    { id: 'financial', label: 'Finanzas', icon: <Wallet className="w-4 h-4" /> },
     { id: 'analytics', label: 'Métricas', icon: <BarChart2 className="w-4 h-4" /> },
     { id: 'logs', label: 'Bitácora', icon: <BookOpen className="w-4 h-4" /> },
 ];
