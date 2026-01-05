@@ -68,7 +68,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         });
 
+        // Safety timeout: don't stay loading forever (max 10 seconds)
+        const safetyTimeout = setTimeout(() => {
+            if (isLoading) {
+                console.warn("Auth initialization taking too long, forcing loading to false");
+                setIsLoading(false);
+            }
+        }, 10000);
+
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+            console.log("Auth state changed:", firebaseUser ? "User found" : "No user");
             if (firebaseUser) {
                 setUser({
                     id: firebaseUser.uid,
@@ -82,6 +91,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 setGoogleAccessToken(null);
             }
             setIsLoading(false);
+            clearTimeout(safetyTimeout);
         });
 
         return () => unsubscribe();
