@@ -302,7 +302,6 @@ export default function CalendarView({ onOpenSettings, tasks = [] }: { onOpenSet
                 onSave={async (eventData) => {
                     try {
                         await createEvent(eventData);
-                        toast.success("Evento creado exitosamente");
                         handleRefresh();
                     } catch (err) {
                         toast.error("Error al crear el evento");

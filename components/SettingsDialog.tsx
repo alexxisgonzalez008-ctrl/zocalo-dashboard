@@ -17,18 +17,12 @@ export default function SettingsDialog({ settings, isOpen, onClose, onSave }: Se
     const [subtitle, setSubtitle] = useState(settings.subtitle);
     const [totalBudget, setTotalBudget] = useState(settings.totalBudget || 0);
 
-    const [googleCalendarId, setGoogleCalendarId] = useState(settings.googleCalendarId || "");
-    const [googleClientId, setGoogleClientId] = useState(settings.googleClientId || "");
-    const [googleApiKey, setGoogleApiKey] = useState(settings.googleApiKey || "");
 
     useEffect(() => {
         if (isOpen) {
             setTitle(settings.title);
             setSubtitle(settings.subtitle);
             setTotalBudget(settings.totalBudget || 0);
-            setGoogleCalendarId(settings.googleCalendarId || "");
-            setGoogleClientId(settings.googleClientId || "");
-            setGoogleApiKey(settings.googleApiKey || "");
         }
     }, [isOpen, settings]);
 
@@ -38,9 +32,9 @@ export default function SettingsDialog({ settings, isOpen, onClose, onSave }: Se
             title,
             subtitle,
             totalBudget,
-            googleCalendarId,
-            googleClientId,
-            googleApiKey
+            googleCalendarId: settings.googleCalendarId,
+            googleClientId: settings.googleClientId,
+            googleApiKey: settings.googleApiKey
         });
         onClose();
     };
@@ -148,48 +142,6 @@ export default function SettingsDialog({ settings, isOpen, onClose, onSave }: Se
                                         placeholder="0.00"
                                     />
                                 </div>
-                            </div>
-
-                            {/* GOOGLE CALENDAR SECTION */}
-                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-4">
-                                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 flex items-center gap-2">
-                                    <Calendar className="w-4 h-4 text-blue-500" /> Google Calendar API
-                                </h4>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Calendar ID</label>
-                                        <input
-                                            type="text"
-                                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs"
-                                            value={googleCalendarId}
-                                            onChange={e => setGoogleCalendarId(e.target.value)}
-                                            placeholder="primary o ID de calendario"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">Client ID (OAuth)</label>
-                                        <input
-                                            type="text"
-                                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
-                                            value={googleClientId}
-                                            onChange={e => setGoogleClientId(e.target.value)}
-                                            placeholder="XXXXX.apps.googleusercontent.com"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-slate-400 uppercase">API Key</label>
-                                        <input
-                                            type="password"
-                                            className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-mono"
-                                            value={googleApiKey}
-                                            onChange={e => setGoogleApiKey(e.target.value)}
-                                            placeholder="Clave de API de Google Cloud"
-                                        />
-                                    </div>
-                                </div>
-                                <p className="text-[10px] text-slate-500 italic">
-                                    Requiere habilitar Google Calendar API en Google Cloud Console.
-                                </p>
                             </div>
 
                             {/* Footer / Actions */}

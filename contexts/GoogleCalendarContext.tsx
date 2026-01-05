@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { ProjectSettings, CalendarEvent } from "@/lib/types";
 import { useAuth } from "./AuthContext";
 import { GOOGLE_CALENDAR_CLIENT_ID, GOOGLE_CALENDAR_API_KEY } from "@/lib/firebase";
+import { toast } from "sonner";
 
 interface GoogleCalendarContextType {
     isConnected: boolean;
@@ -66,12 +67,16 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
     }, []);
 
     const fetchEvents = useCallback(async (timeMin?: string, timeMax?: string) => {
-        if (!token) return [];
+        if (!token) {
+            console.warn("fetchEvents aborted: No token found");
+            return [];
+        }
         setIsSyncing(true);
         setError(null);
         try {
             const calendarId = settings.googleCalendarId || 'primary';
-            let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}`;
+            // Use timeMax/timeMin with single events expanded
+            let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&singleEvents=true&orderBy=startTime`;
 
             if (timeMin) url += `&timeMin=${encodeURIComponent(timeMin)}`;
             if (timeMax) url += `&timeMax=${encodeURIComponent(timeMax)}`;
@@ -82,28 +87,32 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
                     Authorization: `Bearer ${token}`,
                 },
             });
-            const data = await response.json();
 
-            if (data.error) {
-                console.error("Fetch Events Error:", data.error);
-                throw new Error(data.error.message);
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error("GCal Fetch API error:", errorData);
+                throw new Error(errorData.error?.message || `HTTP Error ${response.status}`);
             }
 
-            console.log("Fetched events count:", (data.items || []).length);
+            const data = await response.json();
+            console.log("Fetched raw items:", data.items);
+
             // Map Google events to our CalendarEvent type
             return (data.items || []).map((item: any) => ({
                 id: item.id,
                 googleEventId: item.id,
-                title: item.summary,
+                title: item.summary || "(Sin título)",
                 type: (item.description?.includes('IslaraType:') ? item.description.split('IslaraType:')[1].split(' ')[0] : 'meeting') as any,
-                start: item.start.dateTime || item.start.date,
-                end: item.end.dateTime || item.end.date,
+                start: item.start?.dateTime || item.start?.date,
+                end: item.end?.dateTime || item.end?.date,
                 description: item.description,
                 location: item.location,
+                allDay: !!item.start?.date
             }));
         } catch (err: any) {
-            console.error(err);
+            console.error("fetchEvents catch block:", err);
             setError(err.message || "Error al obtener eventos.");
+            toast.error(`Error al sincronizar calendario: ${err.message}`);
             return [];
         } finally {
             setIsSyncing(false);
@@ -112,7 +121,9 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
 
     const createEvent = useCallback(async (event: Omit<CalendarEvent, 'id' | 'googleEventId'>) => {
         if (!token) {
-            setError("No hay una sesión de Google activa. Por favor, vuelve a conectar.");
+            const msg = "No hay una sesión de Google activa. Por favor, vuelve a conectar.";
+            setError(msg);
+            toast.error(msg);
             return;
         }
 
@@ -121,7 +132,39 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
         setError(null);
 
         try {
-            console.log("Attempting to create event in calendar:", calendarId);
+            console.log("Attempting to create event in calendar:", calendarId, event);
+
+            // Format dateTime correctly for Google API (append offset if missing)
+            const formatDT = (dt: string) => {
+                if (dt.includes('T') && !dt.includes('Z') && !/[+-]\d{2}:\d{2}$/.test(dt)) {
+                    // It's a localized datetime from our picker, but Google likes offsets or Z
+                    // Since we also send timeZone, we should ideally send either Z or offset.
+                    // For simplicity, let's assume local time and let Google handle it via timeZone param.
+                    return dt;
+                }
+                return dt;
+            };
+
+            const body = {
+                summary: event.title,
+                description: `${event.description || ""}\n\nIslaraType:${event.type}`,
+                location: event.location,
+                start: event.allDay
+                    ? { date: event.start.split('T')[0] }
+                    : {
+                        dateTime: formatDT(event.start),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    },
+                end: event.allDay
+                    ? { date: event.end.split('T')[0] }
+                    : {
+                        dateTime: formatDT(event.end),
+                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    },
+            };
+
+            console.log("Create event body:", body);
+
             const response = await fetch(
                 `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}`,
                 {
@@ -130,23 +173,7 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
                         Authorization: `Bearer ${token}`,
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({
-                        summary: event.title,
-                        description: `${event.description || ""}\n\nIslaraType:${event.type}`,
-                        location: event.location,
-                        start: event.allDay
-                            ? { date: event.start }
-                            : {
-                                dateTime: event.start,
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                        end: event.allDay
-                            ? { date: event.end }
-                            : {
-                                dateTime: event.end,
-                                timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                            },
-                    }),
+                    body: JSON.stringify(body),
                 }
             );
 
@@ -155,15 +182,17 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
             if (!response.ok) {
                 console.error("Google Calendar API Error:", data);
                 if (data.error?.message === "Insufficient Permission") {
-                    throw new Error("No tienes permisos suficientes. Por favor, desconecta y vuelve a conectar tu cuenta de Google.");
+                    throw new Error("No tienes permisos suficientes (Scopes). Por favor, sal de la aplicación y vuelve a entrar.");
                 }
-                throw new Error(data.error?.message || "Error desconocido al crear el evento.");
+                throw new Error(data.error?.message || `Error ${response.status}: ${JSON.stringify(data.error)}`);
             }
 
             console.log("Event created successfully:", data);
+            toast.success("Evento sincronizado con Google Calendar");
         } catch (err: any) {
             console.error("Calendar creation catch block:", err);
             setError(err.message || "Error al crear evento.");
+            toast.error(`Error al crear evento: ${err.message}`);
             throw err;
         } finally {
             setIsSyncing(false);

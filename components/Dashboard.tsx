@@ -220,7 +220,7 @@ export default function Dashboard() {
             <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 selection:bg-emerald-100 selection:text-emerald-900 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 overflow-x-hidden flex flex-col w-full">
 
                 {/* 1. HEADER */}
-                <header className="sticky top-0 z-50 transition-all duration-300 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                <header className="sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
                     <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
                         {/* BRAND */}
                         <div className="flex items-center gap-2">
@@ -236,8 +236,8 @@ export default function Dashboard() {
                                     <Hammer className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h1 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white leading-tight">ZOCALO</h1>
-                                    <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-wider text-left truncate max-w-[150px]">{projectSettings.title}</p>
+                                    <h1 className="text-lg font-black tracking-tighter text-slate-900 dark:text-white leading-tight">ZOCALO</h1>
+                                    <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-slate-400 tracking-widest text-left truncate max-w-[120px] md:max-w-[200px]">{projectSettings.title}</p>
                                 </div>
                             </div>
                         </div>
@@ -276,13 +276,6 @@ export default function Dashboard() {
                                     <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 hidden sm:block">{user.username}</span>
                                 </div>
                                 <ModeToggle />
-                                <button
-                                    onClick={() => setIsShareOpen(true)}
-                                    className="p-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
-                                    title="Compartir Proyecto"
-                                >
-                                    <UserPlus className="w-5 h-5" />
-                                </button>
                                 <button
                                     onClick={() => setIsShareOpen(true)}
                                     className="p-2 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors"
@@ -371,18 +364,36 @@ export default function Dashboard() {
                                             </h3>
                                         </div>
                                         <div className="space-y-4">
-                                            {filteredCategories.map(cat => (
-                                                <TaskCategory
-                                                    key={cat}
-                                                    category={cat}
-                                                    tasks={filteredTasks.filter(t => t.category === cat)}
-                                                    isOpen={openCategories.includes(cat) || !!searchTerm}
-                                                    onToggle={toggleCategory}
-                                                    onToggleTaskstatus={handleStatusChange}
-                                                    onEditTask={setEditingTask}
-                                                    onDeleteTask={handleDeleteTask}
-                                                />
-                                            ))}
+                                            {filteredTasks.length === 0 ? (
+                                                <div className="flex flex-col items-center justify-center p-12 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 transition-all text-center">
+                                                    <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-900/20 rounded-full flex items-center justify-center mb-6">
+                                                        <Plus className="w-10 h-10 text-emerald-600" />
+                                                    </div>
+                                                    <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">No hay tareas registradas</h3>
+                                                    <p className="text-slate-500 dark:text-slate-400 text-sm max-w-sm mb-8">
+                                                        Tu cronograma está vacío. Comienza agregando la primera tarea para organizar la ejecución de tu obra.
+                                                    </p>
+                                                    <button
+                                                        onClick={() => setEditingTask({} as Task)}
+                                                        className="px-8 py-3 bg-slate-900 dark:bg-emerald-600 text-white rounded-xl font-bold shadow-lg hover:bg-slate-800 dark:hover:bg-emerald-700 transition-all active:scale-95"
+                                                    >
+                                                        Crear mi primera tarea
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                filteredCategories.map(cat => (
+                                                    <TaskCategory
+                                                        key={cat}
+                                                        category={cat}
+                                                        tasks={filteredTasks.filter(t => t.category === cat)}
+                                                        isOpen={openCategories.includes(cat) || !!searchTerm}
+                                                        onToggle={toggleCategory}
+                                                        onToggleTaskstatus={handleStatusChange}
+                                                        onEditTask={setEditingTask}
+                                                        onDeleteTask={handleDeleteTask}
+                                                    />
+                                                ))
+                                            )}
                                         </div>
                                     </div>
                                     <div className="space-y-6">

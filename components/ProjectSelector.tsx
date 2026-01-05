@@ -5,91 +5,135 @@ import { Project } from '@/lib/types';
 import { Plus, Folder, Calendar, ArrowRight, Trash2, Home } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { db, auth } from '@/lib/firebase';
+import {
+    collection,
+    query,
+    where,
+    onSnapshot,
+    addDoc,
+    deleteDoc,
+    doc,
+    setDoc,
+    getDocs,
+    arrayUnion
+} from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ProjectSelectorProps {
     onSelect: (projectId: string) => void;
 }
 
 export default function ProjectSelector({ onSelect }: ProjectSelectorProps) {
+    const { user } = useAuth();
     const [projects, setProjects] = useState<Project[]>([]);
     const [isCreating, setIsCreating] = useState(false);
     const [newName, setNewName] = useState('');
     const [newDesc, setNewDesc] = useState('');
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
+        if (!user) return;
+
+        // 1. Listen for project changes in Firestore
+        const projectsRef = collection(db, 'projects_list');
+        const q = query(projectsRef, where('members', 'array-contains', user.id));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const list = snapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            })) as Project[];
+            setProjects(list);
+            setIsLoading(false);
+        }, (error) => {
+            console.error("Error fetching projects:", error);
+            toast.error("Error al cargar proyectos");
+            setIsLoading(false);
+        });
+
+        // 2. Migration Logic (Local Storage -> Firestore)
+        const migrateLocalProjects = async () => {
             const savedProjects = localStorage.getItem('islara_projects_list');
-            const legacyTasks = localStorage.getItem('islara_tasks');
-
             if (savedProjects) {
-                setProjects(JSON.parse(savedProjects));
-            } else if (legacyTasks) {
-                // Migration: Create "Islara" project if old data exists
-                const settings = localStorage.getItem('islara_settings');
-                let projectName = 'Islara (Anterior)';
-                if (settings) {
-                    const parsed = JSON.parse(settings);
-                    if (parsed.title) projectName = parsed.title;
+                try {
+                    const localList = JSON.parse(savedProjects) as Project[];
+                    for (const project of localList) {
+                        // Check if project already exists in Firestore (simple check by ID if possible, or just upload)
+                        // For this migration, we'll try to setDoc with the existing ID to preserve keys
+                        const projectRef = doc(db, 'projects_list', project.id);
+                        await setDoc(projectRef, {
+                            name: project.name,
+                            description: project.description,
+                            createdAt: project.createdAt || new Date().toISOString(),
+                            members: [user.id]
+                        }, { merge: true });
+
+                        // Also migrate project data if it exists locally
+                        const taskKey = `p_${project.id}_tasks`;
+                        const localTasks = localStorage.getItem(taskKey);
+                        if (localTasks) {
+                            const dataRef = doc(db, 'projects', project.id);
+                            await setDoc(dataRef, {
+                                tasks: JSON.parse(localTasks),
+                                logs: JSON.parse(localStorage.getItem(`p_${project.id}_logs`) || '[]'),
+                                settings: JSON.parse(localStorage.getItem(`p_${project.id}_settings`) || '{}'),
+                                rainDays: JSON.parse(localStorage.getItem(`p_${project.id}_rain_days`) || '[]')
+                            }, { merge: true });
+                        }
+                    }
+                    toast.success("Tus proyectos locales han sido sincronizados con la nube");
+                    localStorage.removeItem('islara_projects_list');
+                    // We don't remove individual p_ keys yet to be safe, but they won't be used
+                } catch (error) {
+                    console.error("Error migrating projects:", error);
                 }
-
-                const defaultProject: Project = {
-                    id: 'islara-default',
-                    name: projectName,
-                    description: 'Proyecto migrado del sistema anterior',
-                    createdAt: new Date().toISOString()
-                };
-                const list = [defaultProject];
-                setProjects(list);
-                localStorage.setItem('islara_projects_list', JSON.stringify(list));
-
-                // Migrate keys
-                localStorage.setItem(`p_islara-default_tasks`, legacyTasks!);
-                const logs = localStorage.getItem('islara_logs');
-                if (logs) localStorage.setItem(`p_islara-default_logs`, logs);
-                if (settings) localStorage.setItem(`p_islara-default_settings`, settings);
-                const rain = localStorage.getItem('islara_rain_days');
-                if (rain) localStorage.setItem(`p_islara-default_rain_days`, rain);
             }
-        }
-    }, []);
-
-    const handleCreate = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!newName.trim()) return;
-
-        const newProject: Project = {
-            id: `project-${Date.now()}`,
-            name: newName,
-            description: newDesc,
-            createdAt: new Date().toISOString()
         };
 
-        const updated = [...projects, newProject];
-        setProjects(updated);
-        localStorage.setItem('islara_projects_list', JSON.stringify(updated));
+        migrateLocalProjects();
 
-        // Initialize project data if needed (Dashboard handles empty state)
+        return () => unsubscribe();
+    }, [user]);
 
-        setIsCreating(false);
-        setNewName('');
-        setNewDesc('');
-        toast.success(`Proyecto "${newName}" creado`);
+    const handleCreate = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newName.trim() || !user) return;
+
+        try {
+            const projectsRef = collection(db, 'projects_list');
+            await addDoc(projectsRef, {
+                name: newName,
+                description: newDesc,
+                createdAt: new Date().toISOString(),
+                members: [user.id]
+            });
+
+            setIsCreating(false);
+            setNewName('');
+            setNewDesc('');
+            toast.success(`Proyecto "${newName}" creado`);
+        } catch (error) {
+            console.error("Error creating project:", error);
+            toast.error("Error al crear el proyecto");
+        }
     };
 
-    const deleteProject = (id: string, e: React.MouseEvent) => {
+    const deleteProject = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         if (confirm("¿Estás seguro de eliminar este proyecto y todos sus datos?")) {
-            const updated = projects.filter(p => p.id !== id);
-            setProjects(updated);
-            localStorage.setItem('islara_projects_list', JSON.stringify(updated));
+            try {
+                // Delete project metadata
+                await deleteDoc(doc(db, 'projects_list', id));
+                // Note: We might want to keep the data or delete it too
+                // In a real app, you might want to delete the 'projects' document as well
+                await deleteDoc(doc(db, 'projects', id));
 
-            // Clean up project data
-            localStorage.removeItem(`p_${id}_tasks`);
-            localStorage.removeItem(`p_${id}_logs`);
-            localStorage.removeItem(`p_${id}_settings`);
-            localStorage.removeItem(`p_${id}_rain_days`);
-
-            toast.info("Proyecto eliminado");
+                toast.info("Proyecto eliminado");
+            } catch (error) {
+                console.error("Error deleting project:", error);
+                toast.error("Error al eliminar el proyecto");
+            }
         }
     };
 
@@ -102,6 +146,12 @@ export default function ProjectSelector({ onSelect }: ProjectSelectorProps) {
                     </div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Mis Proyectos</h1>
                     <p className="text-slate-500 dark:text-slate-400">Selecciona o crea un nuevo proyecto para comenzar</p>
+                    {isLoading && (
+                        <div className="mt-4 flex items-center justify-center gap-2 text-sm text-slate-500">
+                            <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                            Cargando proyectos en la nube...
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { auth, googleProvider } from '../lib/firebase';
 import {
     signInWithPopup,
+    signInWithRedirect,
+    getRedirectResult,
     signOut,
     onAuthStateChanged,
     User as FirebaseUser,
@@ -31,10 +33,41 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
-    const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(null);
+    const [googleAccessToken, setGoogleAccessToken] = useState<string | null>(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('google_access_token');
+        }
+        return null;
+    });
     const [isLoading, setIsLoading] = useState(true);
 
+    // Sync token with sessionStorage
     useEffect(() => {
+        if (googleAccessToken) {
+            sessionStorage.setItem('google_access_token', googleAccessToken);
+        } else {
+            sessionStorage.removeItem('google_access_token');
+        }
+    }, [googleAccessToken]);
+
+    useEffect(() => {
+        // Handle redirect result
+        getRedirectResult(auth).then((result) => {
+            if (result) {
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                if (credential) {
+                    setGoogleAccessToken(credential.accessToken || null);
+                }
+                toast.success("Sesión iniciada correctamente");
+            }
+        }).catch((error: any) => {
+            console.error("Error getting redirect result", error);
+            // Don't show toast for every page load, only if it's a real auth error
+            if (error.code && error.code !== 'auth/popup-closed-by-user') {
+                toast.error(`Error de autenticación: ${error.message}`);
+            }
+        });
+
         const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
             if (firebaseUser) {
                 setUser({
@@ -55,25 +88,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const loginWithGoogle = async () => {
+        setIsLoading(true);
         try {
-            const result = await signInWithPopup(auth, googleProvider);
-            const credential = GoogleAuthProvider.credentialFromResult(result);
-            if (credential) {
-                setGoogleAccessToken(credential.accessToken || null);
+            // Use redirect for mobile devices, popup for desktop
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+                (typeof window !== 'undefined' && window.innerWidth < 768);
+
+            if (isMobile) {
+                await signInWithRedirect(auth, googleProvider);
+            } else {
+                const result = await signInWithPopup(auth, googleProvider);
+                const credential = GoogleAuthProvider.credentialFromResult(result);
+                if (credential) {
+                    setGoogleAccessToken(credential.accessToken || null);
+                }
+                toast.success("Sesión iniciada correctamente");
             }
-            toast.success("Sesión iniciada correctamente");
         } catch (error: any) {
             console.error("Error signing in with Google", error);
+            setIsLoading(false);
             if (error.code === 'auth/popup-closed-by-user') {
                 toast.error("El inicio de sesión fue cancelado");
+            } else if (error.code === 'auth/popup-blocked') {
+                toast.error("El navegador bloqueó la ventana. Intentando otro método...");
+                await signInWithRedirect(auth, googleProvider);
+            } else if (error.code === 'auth/unauthorized-domain') {
+                toast.error("Este dominio no está autorizado en Firebase. Configura 'localhost' o tu dominio en la consola de Firebase.");
             } else {
-                toast.error("Error al iniciar sesión con Google");
+                toast.error(`Error al iniciar sesión: ${error.message || 'Error desconocido'}`);
             }
         }
     };
 
     const logout = async () => {
         try {
+            sessionStorage.removeItem('google_access_token');
             await signOut(auth);
             toast.info("Sesión cerrada");
         } catch (error) {
