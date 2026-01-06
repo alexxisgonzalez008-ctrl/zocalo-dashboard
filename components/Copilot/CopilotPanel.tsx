@@ -89,7 +89,7 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
             {/* Trigger Button */}
             <button
                 onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 left-6 z-[100] w-14 h-14 bg-slate-900 border border-slate-700 text-emerald-400 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all hover:bg-slate-800"
+                className="fixed bottom-6 right-6 z-[100] w-14 h-14 bg-slate-900 border border-slate-700 text-emerald-400 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all hover:bg-slate-800"
             >
                 <Sparkles className="w-7 h-7" />
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse border-2 border-slate-900" />
@@ -101,7 +101,7 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                        className="fixed bottom-24 left-6 z-[100] w-[380px] h-[550px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden"
+                        className="fixed bottom-24 right-6 z-[100] w-[380px] h-[550px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl flex flex-col border border-slate-200 dark:border-slate-800 overflow-hidden"
                     >
                         {/* Header */}
                         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 flex items-center justify-between">
