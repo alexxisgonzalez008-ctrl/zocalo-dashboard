@@ -48,6 +48,7 @@ import LoginPage from "./LoginPage";
 import { GoogleCalendarProvider } from "@/contexts/GoogleCalendarContext";
 import CalendarView from "./CalendarView";
 import { cn } from "@/lib/utils";
+import CopilotPanel from "./Copilot/CopilotPanel";
 
 const NAV_TABS = [
     { id: 'overview', label: 'Panel', icon: <LayoutDashboard className="w-4 h-4" /> },
@@ -518,6 +519,7 @@ export default function Dashboard() {
                         ))}
                     </div>
                 </nav>
+                <CopilotPanel projectId={selectedProjectId} />
             </div>
         </GoogleCalendarProvider>
     );

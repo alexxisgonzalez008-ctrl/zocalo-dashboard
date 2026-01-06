@@ -13,6 +13,8 @@ import {
     GoogleAuthProvider
 } from 'firebase/auth';
 
+import { isAuthorized, getUserRole } from '../lib/auth-config';
+
 interface User {
     id: string;
     username: string;
@@ -52,8 +54,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         // Handle redirect result
-        getRedirectResult(auth).then((result) => {
-            if (result) {
+        getRedirectResult(auth).then(async (result) => {
+            if (result && result.user) {
+                if (!isAuthorized(result.user.email)) {
+                    toast.error("Acceso no autorizado. Este correo no está en la lista de testeadores.");
+                    await signOut(auth);
+                    return;
+                }
+
                 const credential = GoogleAuthProvider.credentialFromResult(result);
                 if (credential) {
                     setGoogleAccessToken(credential.accessToken || null);
@@ -76,16 +84,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
         }, 10000);
 
-        const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
             console.log("Auth state changed:", firebaseUser ? "User found" : "No user");
             if (firebaseUser) {
-                setUser({
-                    id: firebaseUser.uid,
-                    username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
-                    role: 'admin',
-                    avatar: firebaseUser.photoURL || undefined,
-                    email: firebaseUser.email || undefined
-                });
+                // Check authorization
+                if (!isAuthorized(firebaseUser.email)) {
+                    console.warn(`Unauthorized login attempt: ${firebaseUser.email}`);
+                    setUser(null);
+                    setGoogleAccessToken(null);
+                    // We don't toast here to avoid double toast with redirect result, 
+                    // but we ensure the user is signed out if session persists
+                    if (auth.currentUser) {
+                        await signOut(auth);
+                    }
+                } else {
+                    setUser({
+                        id: firebaseUser.uid,
+                        username: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Usuario',
+                        role: getUserRole(firebaseUser.email),
+                        avatar: firebaseUser.photoURL || undefined,
+                        email: firebaseUser.email || undefined
+                    });
+                }
             } else {
                 setUser(null);
                 setGoogleAccessToken(null);
@@ -108,6 +128,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 await signInWithRedirect(auth, googleProvider);
             } else {
                 const result = await signInWithPopup(auth, googleProvider);
+
+                if (!isAuthorized(result.user.email)) {
+                    toast.error("Acceso no autorizado. Este correo no está en la lista de testeadores.");
+                    await signOut(auth);
+                    setIsLoading(false);
+                    return;
+                }
+
                 const credential = GoogleAuthProvider.credentialFromResult(result);
                 if (credential) {
                     setGoogleAccessToken(credential.accessToken || null);

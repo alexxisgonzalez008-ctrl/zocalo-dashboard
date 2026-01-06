@@ -31,3 +31,9 @@ ts-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# prisma & db
+.env
+prisma/*.db
+prisma/*.db-journal
+node_modules/.prisma
