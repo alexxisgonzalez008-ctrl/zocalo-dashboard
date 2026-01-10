@@ -4,8 +4,8 @@ import { LLMResponse, CopilotMessage, ToolCall } from './types';
 // TODO: En producción, esto vendría de variables de entorno
 // LLM Gateway Configuration
 const DEFAULT_MODEL = 'Qwen/Qwen2.5-72B-Instruct';
-// Usamos el endpoint oficial compatible con OpenAI de Hugging Face
-const LLM_GATEWAY_URL = process.env.LLM_GATEWAY_URL || `https://api-inference.huggingface.co/v1/chat/completions`;
+// Usamos el nuevo Router de Hugging Face para evitar errores 410 (Gone)
+const LLM_GATEWAY_URL = process.env.LLM_GATEWAY_URL || `https://router.huggingface.co/v1/chat/completions`;
 const HUGGINGFACE_TOKEN = process.env.HUGGINGFACE_TOKEN?.trim().replace(/^Bearer\s+/i, '');
 
 export async function invokeLLMGateway(payload: {
@@ -15,7 +15,7 @@ export async function invokeLLMGateway(payload: {
     tools: any[];
 }): Promise<LLMResponse> {
     if (!HUGGINGFACE_TOKEN || HUGGINGFACE_TOKEN.length < 10) {
-        return { assistantText: "Configuración incompleta o token muy corto: No se encontró un HUGGINGFACE_TOKEN válido en las Environment Variables de Vercel." };
+        return { assistantText: "Configuración incompleta o token inválido: No se encontró un HUGGINGFACE_TOKEN válido en las Environment Variables de Vercel." };
     }
     const systemPrompt = `You are Islara AI, a professional construction assistant.
 Your primary goal is to help the user manage the project by using the available tools.
