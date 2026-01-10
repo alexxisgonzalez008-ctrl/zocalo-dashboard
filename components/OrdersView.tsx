@@ -115,11 +115,11 @@ export default function OrdersView({ projectId }: { projectId: string }) {
                                     <div>
                                         <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                             Pedido a {order.vendor || "Proveedor"}
-                                            <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 letter tracking-wider">
+                                            <span className="text-[10px] uppercase px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border dark:border-slate-700/50 letter tracking-wider">
                                                 #{order.id.slice(0, 4)}
                                             </span>
                                         </h4>
-                                        <p className="text-xs text-slate-500 font-medium">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
                                             {format(new Date(order.date), "dd 'de' MMMM", { locale: es })} • {order.items.length} ítems
                                         </p>
                                     </div>
