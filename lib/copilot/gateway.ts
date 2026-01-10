@@ -3,7 +3,7 @@ import { LLMResponse, CopilotMessage, ToolCall } from './types';
 
 // TODO: En producción, esto vendría de variables de entorno
 // LLM Gateway Configuration
-const DEFAULT_MODEL = 'meta-llama/Llama-3.1-8B-Instruct';
+const DEFAULT_MODEL = 'Qwen/Qwen2.5-72B-Instruct';
 const LLM_GATEWAY_URL = process.env.LLM_GATEWAY_URL || `https://router.huggingface.co/v1/chat/completions`;
 const HUGGINGFACE_TOKEN = process.env.HUGGINGFACE_TOKEN?.trim();
 
