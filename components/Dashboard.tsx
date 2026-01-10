@@ -240,7 +240,7 @@ export default function Dashboard() {
 
                 {/* 1. HEADER */}
                 <header className="sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
+                    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
                         {/* BRAND */}
                         <div className="flex items-center gap-2">
                             <button
@@ -322,7 +322,7 @@ export default function Dashboard() {
                 </header>
 
                 {/* 2. MAIN CONTENT */}
-                <main className="flex-1 max-w-[1400px] mx-auto w-full p-4 md:p-8 space-y-8">
+                <main className="flex-1 max-w-[1280px] mx-auto w-full p-4 md:p-8 space-y-6">
                     {/* SIMULATOR BAR (only on Gantt or Calendar) */}
                     {(activeTab === 'gantt' || activeTab === 'calendar') && (
                         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30 shadow-sm border-l-4 border-l-blue-500">
@@ -355,7 +355,7 @@ export default function Dashboard() {
                                 animate={{ opacity: 1, y: 0 }}
                                 exit={{ opacity: 0, y: -10 }}
                                 transition={{ duration: 0.2 }}
-                                className="space-y-8"
+                                className="space-y-6"
                             >
                                 <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                                     <div className="space-y-1">
