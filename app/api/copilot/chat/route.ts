@@ -4,13 +4,14 @@ import { ChatInputSchema } from "@/lib/copilot/types";
 import { invokeLLMGateway } from "@/lib/copilot/gateway";
 import { handleToolCallAsProposal } from "@/lib/copilot/proposals";
 import { getToolsJsonSchema } from "@/lib/copilot/tools";
+import { getAuthSession } from "@/lib/auth";
 
 export async function POST(req: NextRequest) {
     try {
         const body = ChatInputSchema.parse(await req.json());
 
-        // 1. Mock de Auth (TODO: Integrar con AuthContext/NextAuth)
-        const userId = "user_dev_alex";
+        // 1. Centralized Auth
+        const { userId } = getAuthSession();
 
         // 2. Obtener o crear conversación
         let conversation = await prisma.copilotConversation.findFirst({
@@ -112,7 +113,7 @@ export async function DELETE(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const projectId = searchParams.get("projectId") || "default";
-        const userId = "user_dev_alex";
+        const { userId } = getAuthSession();
 
         const conversation = await prisma.copilotConversation.findFirst({
             where: { projectId, userId }

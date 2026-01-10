@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { getAuthSession } from "@/lib/auth";
 
 const CancelInput = z.object({
     proposalId: z.string().min(1)
@@ -9,7 +10,7 @@ const CancelInput = z.object({
 export async function POST(req: NextRequest) {
     try {
         const body = CancelInput.parse(await req.json());
-        const userId = "user_dev_alex"; // TODO: Auth
+        const { userId } = getAuthSession();
 
         const proposal = await prisma.copilotProposal.findUnique({
             where: { id: body.proposalId }

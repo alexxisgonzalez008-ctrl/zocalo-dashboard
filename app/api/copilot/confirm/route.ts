@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { getAuthSession } from "@/lib/auth";
 
 const ConfirmInput = z.object({
     proposalId: z.string().min(1),
@@ -10,7 +11,7 @@ const ConfirmInput = z.object({
 export async function POST(req: NextRequest) {
     try {
         const body = ConfirmInput.parse(await req.json());
-        const userId = "user_dev_alex"; // TODO: Auth
+        const { userId } = getAuthSession();
 
         // 1. Cargar propuesta
         const proposal = await prisma.copilotProposal.findUnique({

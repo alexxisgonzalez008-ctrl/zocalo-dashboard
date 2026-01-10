@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
+import { getAuthSession } from "@/lib/auth";
 
 const CreateOrderSchema = z.object({
     projectId: z.string(),
@@ -33,7 +34,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
     try {
         const body = CreateOrderSchema.parse(await req.json());
-        const userId = "user_dev_alex"; // TODO: Auth
+        const { userId } = getAuthSession();
 
         const order = await prisma.materialOrder.create({
             data: {

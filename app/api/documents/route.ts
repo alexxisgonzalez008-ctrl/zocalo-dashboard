@@ -1,5 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { z } from "zod";
+import { getAuthSession } from "@/lib/auth";
+
+const CreateDocumentSchema = z.object({
+    projectId: z.string(),
+    name: z.string().min(1),
+    type: z.string(),
+    url: z.string().optional(),
+    category: z.string(),
+    size: z.string().optional()
+});
 
 export async function GET(req: NextRequest) {
     try {
@@ -20,30 +31,24 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
     try {
-        const body = await req.json();
-        const { projectId, name, type, url, category, size } = body;
-
-        if (!projectId || !name || !type || !category) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-        }
-
-        const userId = "user_dev_alex"; // Mock de Auth
+        const body = CreateDocumentSchema.parse(await req.json());
+        const { userId } = getAuthSession();
 
         const document = await prisma.document.create({
             data: {
-                projectId,
+                projectId: body.projectId,
                 userId,
-                name,
-                type,
-                url: url || "#",
-                category,
-                size: size || "0 KB"
+                name: body.name,
+                type: body.type,
+                url: body.url || "#",
+                category: body.category,
+                size: body.size || "0 KB"
             }
         });
 
         return NextResponse.json(document);
     } catch (error: any) {
         console.error("Create Document Error:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        return NextResponse.json({ error: error.message }, { status: 400 });
     }
 }
