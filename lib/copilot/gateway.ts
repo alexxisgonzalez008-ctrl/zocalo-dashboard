@@ -17,7 +17,7 @@ export async function invokeLLMGateway(payload: {
     const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
     const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash-8b-latest",
+        model: "gemini-1.5-flash",
         systemInstruction: `You are Asistente, a professional construction assistant.
 Your primary goal is to help the user manage the project by using the available tools.
 
