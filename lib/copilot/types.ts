@@ -12,7 +12,7 @@ export type CopilotMessage = z.infer<typeof CopilotMessageSchema>;
 
 export const ToolCallSchema = z.object({
     name: z.string(),
-    arguments: z.record(z.any()),
+    arguments: z.record(z.string(), z.any()),
 });
 export type ToolCall = z.infer<typeof ToolCallSchema>;
 

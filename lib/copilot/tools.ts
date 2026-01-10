@@ -40,7 +40,7 @@ export const ProposeDailyLogEntrySchema = z.object({
 });
 export const ProposeTaskChangesSchema = z.object({
     taskId: z.string(),
-    updates: z.record(z.any()),
+    updates: z.record(z.string(), z.any()),
 });
 export const ProposeReportSchema = z.object({
     type: z.enum(["financial", "daily_log", "project_summary"]),
@@ -137,7 +137,7 @@ export function getToolsJsonSchema() {
         function: {
             name: tool.name,
             description: tool.description,
-            parameters: zodToJsonSchema(tool.schema as any)
+            parameters: zodToJsonSchema(tool.schema as any, tool.name)
         }
     }));
 }
