@@ -130,8 +130,8 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
                                     <Bot className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold dark:text-white leading-none">Islara AI</h3>
-                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Online • Llama 3.1 Pro</p>
+                                    <h3 className="text-sm font-bold dark:text-white leading-none">Asistente</h3>
+                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Online • Gemini Flash</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
