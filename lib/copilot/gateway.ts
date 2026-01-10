@@ -56,23 +56,23 @@ Current Project ID: ${payload.projectId}`;
 
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: contents as any,
+            contents: contents,
             config: {
                 systemInstruction: systemInstruction,
                 toolConfig: {
                     functionCallingConfig: {
                         mode: "AUTO"
                     }
-                }
-            } as any,
-            tools: tools as any
-        });
+                },
+                tools: tools
+            }
+        } as any);
 
         const candidate = response.candidates?.[0];
         const parts = candidate?.content?.parts;
         const call = parts?.find(p => p.functionCall)?.functionCall;
 
-        if (call) {
+        if (call && call.name) {
             return {
                 toolCall: {
                     name: call.name,
