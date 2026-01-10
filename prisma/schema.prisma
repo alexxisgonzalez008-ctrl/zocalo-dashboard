@@ -74,6 +74,52 @@ model MaterialOrderItem {
   order             MaterialOrder @relation(fields: [orderId], references: [id])
 }
 
+model Task {
+  id               String              @id @default(uuid())
+  projectId        String
+  userId           String
+  category         String
+  name             String
+  start            DateTime
+  end              DateTime
+  days             Int
+  status           String              @default("pending")
+  priority         String              @default("medium")
+  isMilestone      Boolean             @default(false)
+  budget           Float?
+  cost             Float?
+  locked           Boolean             @default(false)
+  durationWorkdays Int?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+model DailyLog {
+  id        String    @id @default(uuid())
+  projectId String
+  userId    String
+  date      DateTime
+  weather   String?
+  notes     String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expenses  Expense[]
+}
+
+model Expense {
+  id          String    @id @default(uuid())
+  projectId   String
+  userId      String
+  dailyLogId  String?
+  category    String
+  description String
+  amount      Float
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  dailyLog    DailyLog? @relation(fields: [dailyLogId], references: [id])
+}
+
 model Document {
   id        String   @id @default(uuid())
   projectId String

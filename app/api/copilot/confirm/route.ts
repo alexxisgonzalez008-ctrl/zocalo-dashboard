@@ -60,17 +60,33 @@ export async function POST(req: NextRequest) {
 }
 
 async function executeCommit(toolName: string, args: any, userId: string, projectId: string) {
-    // TODO: Integrar con los servicios reales de ISLARA (FinancialView, DailyLogView, etc)
-    // Por ahora simulamos éxito
     switch (toolName) {
         case "propose_expense":
-            console.log("COMMITTING EXPENSE:", args);
-            return { message: "Gasto registrado correctamente", id: crypto.randomUUID() };
+            const expense = await prisma.expense.create({
+                data: {
+                    projectId,
+                    userId,
+                    amount: args.amount,
+                    description: args.description,
+                    category: args.category,
+                    date: args.date ? new Date(args.date) : new Date()
+                }
+            });
+            return { message: "Gasto registrado correctamente", id: expense.id };
+
         case "propose_daily_log_entry":
-            console.log("COMMITTING DAILY LOG:", args);
-            return { message: "Entrada de bitácora guardada", id: crypto.randomUUID() };
+            const log = await prisma.dailyLog.create({
+                data: {
+                    projectId,
+                    userId,
+                    date: args.date ? new Date(args.date) : new Date(),
+                    notes: args.notes,
+                    weather: args.weather
+                }
+            });
+            return { message: "Entrada de bitácora guardada", id: log.id };
+
         case "propose_material_order":
-            console.log("COMMITTING MATERIAL ORDER:", args);
             const order = await prisma.materialOrder.create({
                 data: {
                     projectId,
