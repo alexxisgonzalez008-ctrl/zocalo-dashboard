@@ -2,6 +2,7 @@ import axios from 'axios';
 import { LLMResponse, CopilotMessage, ToolCall } from './types';
 
 // TODO: En producción, esto vendría de variables de entorno
+// LLM Gateway Configuration
 const DEFAULT_MODEL = 'meta-llama/Llama-3.1-8B-Instruct';
 const LLM_GATEWAY_URL = process.env.LLM_GATEWAY_URL || `https://router.huggingface.co/v1/chat/completions`;
 const HUGGINGFACE_TOKEN = process.env.HUGGINGFACE_TOKEN?.trim();
@@ -12,6 +13,9 @@ export async function invokeLLMGateway(payload: {
     messages: CopilotMessage[];
     tools: any[];
 }): Promise<LLMResponse> {
+    if (!HUGGINGFACE_TOKEN) {
+        return { assistantText: "Configuración incompleta: No se encontró el HUGGINGFACE_TOKEN en el servidor (Vercel). Por favor, agrégalo en las Environment Variables." };
+    }
     const systemPrompt = `You are Islara AI, a professional construction assistant.
 Your primary goal is to help the user manage the project by using the available tools.
 
@@ -68,7 +72,7 @@ Available tools: ${JSON.stringify(payload.tools)}`;
             return { assistantText: `El modelo de IA (${DEFAULT_MODEL}) no está disponible (Error ${error.response?.status}). Por favor, intenta más tarde o cambia el modelo.` };
         }
 
-        return { assistantText: "Lo siento, tuve un error al procesar tu solicitud con el modelo de IA. Verifica tu conexión o el token de Hugging Face." };
+        return { assistantText: `Error de API: ${error.message}. Detalle: ${JSON.stringify(error.response?.data || "Sin detalle")}. Verifica tu conexión o el token de Hugging Face.` };
     }
 }
 

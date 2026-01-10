@@ -64,8 +64,13 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
                     proposal: data.proposal
                 }]);
             }
-        } catch (error) {
-            toast.error("Error al conectar con el Copilot");
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.error || "Error al conectar con el Copilot";
+            setMessages(prev => [...prev, {
+                id: Date.now().toString(),
+                role: 'assistant',
+                content: `❌ ${errorMsg}`
+            }]);
         } finally {
             setLoading(false);
         }
