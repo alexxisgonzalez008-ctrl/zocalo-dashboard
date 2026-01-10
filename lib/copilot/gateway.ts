@@ -2,18 +2,19 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LLMResponse, CopilotMessage, ToolCall } from './types';
 
 // Gemini Configuration
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-
 export async function invokeLLMGateway(payload: {
     userId: string;
     projectId: string;
     messages: CopilotMessage[];
     tools: any[];
 }): Promise<LLMResponse> {
+    const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+
     if (!GEMINI_API_KEY || GEMINI_API_KEY.length < 10) {
-        return { assistantText: "Configuración incompleta: No se encontró un GEMINI_API_KEY válido en las Environment Variables de Vercel." };
+        return { assistantText: "Error de configuración: No se encontró la GEMINI_API_KEY. Asegúrate de tenerla en tu archivo .env (local) o en las variables de Vercel (producción)." };
     }
+
+    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
     const model = genAI.getGenerativeModel({
         model: "gemini-1.5-flash-8b-latest",

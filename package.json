@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate && prisma db push --accept-data-loss"
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push --accept-data-loss",
+    "db:push:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma --accept-data-loss",
+    "generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
