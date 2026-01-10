@@ -131,7 +131,7 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
                                 </div>
                                 <div>
                                     <h3 className="text-sm font-bold dark:text-white leading-none">Asistente</h3>
-                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Online • Gemini Flash</p>
+                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Online • Gemini Flash 8B</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-1">
