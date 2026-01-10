@@ -1,12 +1,9 @@
-import axios from 'axios';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import { LLMResponse, CopilotMessage, ToolCall } from './types';
 
-// TODO: En producción, esto vendría de variables de entorno
-// LLM Gateway Configuration
-const DEFAULT_MODEL = 'Qwen/Qwen2.5-72B-Instruct';
-// Usamos el nuevo Router de Hugging Face para evitar errores 410 (Gone)
-const LLM_GATEWAY_URL = process.env.LLM_GATEWAY_URL || `https://router.huggingface.co/v1/chat/completions`;
-const HUGGINGFACE_TOKEN = process.env.HUGGINGFACE_TOKEN?.trim().replace(/^Bearer\s+/i, '');
+// Gemini Configuration
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function invokeLLMGateway(payload: {
     userId: string;
@@ -14,103 +11,69 @@ export async function invokeLLMGateway(payload: {
     messages: CopilotMessage[];
     tools: any[];
 }): Promise<LLMResponse> {
-    if (!HUGGINGFACE_TOKEN || HUGGINGFACE_TOKEN.length < 10) {
-        return { assistantText: "Configuración incompleta o token inválido: No se encontró un HUGGINGFACE_TOKEN válido en las Environment Variables de Vercel." };
+    if (!GEMINI_API_KEY || GEMINI_API_KEY.length < 10) {
+        return { assistantText: "Configuración incompleta: No se encontró un GEMINI_API_KEY válido en las Environment Variables de Vercel." };
     }
-    const systemPrompt = `You are Islara AI, a professional construction assistant.
+
+    const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash",
+        systemInstruction: `You are Islara AI, a professional construction assistant.
 Your primary goal is to help the user manage the project by using the available tools.
 
 STRICT INSTRUCTIONS:
-1. When the user asks to register, create, search, or propose something (like a material order, expense, or daily log), you MUST call the appropriate tool.
-2. DO NOT respond with a list or a conversational response if a tool call is more appropriate.
-3. CONTEXT ISOLATION: Use ONLY the information provided in the user's LATEST message for tool call arguments. 
-4. FRESH START: Every new user request for an order is a blank slate. Do not carry over items from previous messages or assistant responses.
-5. If the user mentions items in a conversational way but hasn't asked to "order" or "register" them yet, ask for clarification instead of calling a tool with old data.
+1. Every user message about "pedidos", "gastos" or "bitácora" should be treated as a NEW and ISOLATED request.
+2. CONTEXT ISOLATION: Do NOT use items, materials, or vendors from previous turns unless explicitly asked to "add to the previous order".
+3. LATEST FOCUS: Focus ONLY on the most recent user message to extract quantities and items. 
+4. If the latest message is "agrega 3 sacos de piedra", and the previous was "2 bolsas de arena", you MUST only order 3 sacos de piedra.
+5. If the user is just chatting, respond normally.
 
-NEGATIVE EXAMPLE (WHAT NOT TO DO):
-User: "Carga un pedido de 10 bolsas de cemento"
-Assistant (WRONG): "Aquí tienes la lista: Piedra, Arena, Cemento, Hierro..." (DO NOT DO THIS)
-Assistant (CORRECT): <start_function_call>call:propose_material_order{"items": [{"description": "Bolsas de cemento", "requestedQuantity": 10}]}<end_function_call>
-
-Current Project ID: ${payload.projectId}
-Available tools: ${JSON.stringify(payload.tools)}`;
+Current Project ID: ${payload.projectId}`,
+    });
 
     try {
-        const response = await axios.post(
-            LLM_GATEWAY_URL,
+        // Transformar herramientas para Gemini
+        const geminiTools = [
             {
-                model: DEFAULT_MODEL,
-                messages: [
-                    { role: 'system', content: systemPrompt },
-                    ...payload.messages.map(m => ({ role: m.role, content: m.content }))
-                ],
-                max_tokens: 500,
-                temperature: 0.1, // Baja temperatura para mayor consistencia en el formato
-            },
-            {
-                headers: {
-                    Authorization: `Bearer ${HUGGINGFACE_TOKEN}`,
-                    'Content-Type': 'application/json',
-                },
+                functionDeclarations: payload.tools.map(t => ({
+                    name: t.function.name,
+                    description: t.function.description,
+                    parameters: t.function.parameters
+                }))
             }
-        );
+        ];
 
-        const outputText = response.data.choices[0]?.message?.content || "";
-        console.log("RAW LLM OUTPUT:", outputText);
-        return parseFunctionGemmaOutput(outputText);
-    } catch (error: any) {
-        console.error("Hugging Face API Error:", {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
+        const chat = model.startChat({
+            history: payload.messages.slice(0, -1).map(m => ({
+                role: m.role === 'user' ? 'user' : 'model',
+                parts: [{ text: m.content }]
+            })),
+            tools: geminiTools as any,
         });
 
-        if (error.response?.status === 401) {
-            return { assistantText: "Error de autenticación: El token de Hugging Face es inválido. Por favor, verifica el archivo .env." };
+        const lastMessage = payload.messages[payload.messages.length - 1].content;
+        const result = await chat.sendMessage(lastMessage);
+        const response = result.response;
+        const call = response.functionCalls()?.[0];
+
+        if (call) {
+            return {
+                toolCall: {
+                    name: call.name,
+                    arguments: call.args as any
+                }
+            };
         }
 
-        if (error.response?.status === 404 || error.response?.status === 410) {
-            return { assistantText: `El modelo de IA (${DEFAULT_MODEL}) no está disponible (Error ${error.response?.status}). Por favor, intenta más tarde o cambia el modelo.` };
+        const text = response.text();
+        return { assistantText: text };
+
+    } catch (error: any) {
+        console.error("Gemini API Error:", error);
+
+        if (error.message?.includes("API_KEY_INVALID")) {
+            return { assistantText: "Error de autenticación: La clave API de Gemini es inválida. Por favor, verifícala en Vercel." };
         }
 
-        return { assistantText: `Error de API: ${error.message}. Detalle: ${JSON.stringify(error.response?.data || "Sin detalle")}. Verifica tu conexión o el token de Hugging Face.` };
+        return { assistantText: `Error de la IA: ${error.message}. Por favor, intenta de nuevo en unos segundos.` };
     }
-}
-
-function parseFunctionGemmaOutput(text: string): LLMResponse {
-    // 1. Intentar match con tags: <start_function_call>call:name{JSON}<end_function_call>
-    let toolCallMatch = text.match(/<start_function_call>\s*call:(\w+)\s*(\{[\s\S]*\})\s*<end_function_call>/);
-
-    // 2. Si no hay match con tags, intentar match directo con call:name{JSON}
-    if (!toolCallMatch) {
-        toolCallMatch = text.match(/call:(\w+)\s*(\{[\s\S]*\})/);
-    }
-
-    if (toolCallMatch) {
-        const name = toolCallMatch[1];
-        let argsString = toolCallMatch[2].trim();
-
-        // 3. Limpiar el JSON si el modelo incluyó texto extra después de la última llave
-        const lastBraceIndex = argsString.lastIndexOf('}');
-        if (lastBraceIndex !== -1) {
-            argsString = argsString.substring(0, lastBraceIndex + 1);
-        }
-
-        try {
-            const args = JSON.parse(argsString);
-            return { toolCall: { name, arguments: args } };
-        } catch (e) {
-            console.error("Error parsing arguments from model. argsString:", argsString, e);
-            // Si el JSON falla, intentamos devolver el texto original para no perder la info
-        }
-    }
-
-    // 4. Si no hay match de herramienta o falló el parseo, devolvemos el texto plano limpio
-    const cleanText = text
-        .replace(/<start_function_call>/g, '')
-        .replace(/<end_function_call>/g, '')
-        .replace(/call:\w+\s*\{[\s\S]*\}/, '')
-        .trim();
-
-    return { assistantText: cleanText || "Recibí una respuesta pero no pude interpretarla como una acción. ¿Podrías repetirlo?" };
 }
