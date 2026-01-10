@@ -236,11 +236,11 @@ export default function Dashboard() {
 
     return (
         <GoogleCalendarProvider settings={projectSettings}>
-            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 selection:bg-emerald-100 selection:text-emerald-900 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 overflow-x-hidden flex flex-col w-full">
+            <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 pb-20 selection:bg-emerald-100 selection:text-emerald-900 dark:selection:bg-emerald-900 dark:selection:text-emerald-100 overflow-x-hidden flex flex-col items-center w-full">
 
                 {/* 1. HEADER */}
-                <header className="sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
-                    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
+                <header className="sticky top-0 z-50 w-full transition-all duration-300 backdrop-blur-xl bg-white/70 dark:bg-slate-900/70 border-b border-slate-200/50 dark:border-slate-800/50 shadow-sm">
+                    <div className="max-w-[1440px] mx-auto px-4 sm:px-6 md:px-8 h-16 flex items-center justify-between gap-4">
                         {/* BRAND */}
                         <div className="flex items-center gap-2">
                             <button
@@ -322,7 +322,7 @@ export default function Dashboard() {
                 </header>
 
                 {/* 2. MAIN CONTENT */}
-                <main className="flex-1 max-w-[1280px] mx-auto w-full p-4 md:p-8 space-y-6">
+                <main className="flex-1 max-w-[1440px] mx-auto w-full p-4 md:p-8 space-y-6">
                     {/* SIMULATOR BAR (only on Gantt or Calendar) */}
                     {(activeTab === 'gantt' || activeTab === 'calendar') && (
                         <div className="flex items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-xl border border-blue-100 dark:border-blue-900/30 shadow-sm border-l-4 border-l-blue-500">
