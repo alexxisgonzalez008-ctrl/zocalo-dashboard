@@ -39,13 +39,11 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
                     setProjectSettings(prev => ({ ...prev, title: "Proyecto Sin Nombre" }));
                 }
                 if (data.rainDays) setRainDays(data.rainDays);
-                if (data.documents) setDocuments(data.documents);
             } else {
                 // Initialize if project doesn't exist in Firestore
                 setTasks(INITIAL_TASKS);
                 setLogs([]);
                 setRainDays([]);
-                setDocuments([]);
                 setProjectSettings({
                     title: "Nuevo Proyecto",
                     subtitle: "Gestión de Obra",
@@ -70,7 +68,12 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
             try {
                 const res = await fetch(`/api/documents?projectId=${selectedProjectId}`);
                 const data = await res.json();
-                setDocuments(data);
+                if (Array.isArray(data)) {
+                    setDocuments(data);
+                } else {
+                    console.error("Invalid documents data:", data);
+                    setDocuments([]);
+                }
             } catch (error) {
                 console.error("Error fetching documents:", error);
             } finally {
@@ -168,7 +171,12 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
                 })
             });
             const newDoc = await res.json();
-            setDocuments(prev => [newDoc, ...prev]);
+            // Evitar duplicación si ya existe (Next.js dev mode/race conditions)
+            setDocuments(prev => {
+                const results = Array.isArray(prev) ? prev : [];
+                if (results.some(d => d.id === newDoc.id)) return results;
+                return [newDoc, ...results];
+            });
             toast.success("Documento registrado");
         } catch (error) {
             toast.error("Error al registrar documento");
