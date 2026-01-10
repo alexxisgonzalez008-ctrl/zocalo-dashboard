@@ -132,12 +132,21 @@ export const COPILOT_TOOLS = [
 
 // Función para obtener los schemas en formato JSON para el LLM Gateway
 export function getToolsJsonSchema() {
-    return COPILOT_TOOLS.map(tool => ({
-        type: "function",
-        function: {
-            name: tool.name,
-            description: tool.description,
-            parameters: zodToJsonSchema(tool.schema as any, tool.name)
-        }
-    }));
+    return COPILOT_TOOLS.map(tool => {
+        // Al no pasar el nombre como segundo argumento, zod-to-json-schema 
+        // devuelve el esquema del objeto directamente en lugar de usar definitions/$ref.
+        const fullSchema = zodToJsonSchema(tool.schema as any) as any;
+
+        // Gemini no acepta estas propiedades de metadatos en el objeto de parámetros.
+        const { $schema, definitions, ...cleanSchema } = fullSchema;
+
+        return {
+            type: "function",
+            function: {
+                name: tool.name,
+                description: tool.description,
+                parameters: cleanSchema
+            }
+        };
+    });
 }
