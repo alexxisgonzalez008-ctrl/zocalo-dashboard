@@ -151,7 +151,47 @@ export default function GanttView({ tasks, logs, currentDate, rainDays, onRainDe
                         ))}
                     </div>
 
-                    {/* 3. TASKS BARS */}
+                    {/* 3. DEPENDENCY LINES (SVG Layer) */}
+                    <svg className="absolute inset-0 top-10 pointer-events-none overflow-visible" style={{ width: timelineWidth }}>
+                        <defs>
+                            <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse">
+                                <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor" />
+                            </marker>
+                        </defs>
+                        {tasks.map((task, taskIndex) => {
+                            if (!task.dependencies || task.dependencies.length === 0) return null;
+
+                            const taskY = 4 + taskIndex * (32 + 12) + 16; // 4px padding-top + index * (h-8 + space-y-3) + offset to middle
+                            const taskStartX = differenceInDays(parseISO(task.start), startDate) * zoom;
+
+                            return task.dependencies.map(depId => {
+                                const depIndex = tasks.findIndex(t => t.id === depId);
+                                if (depIndex === -1) return null;
+
+                                const depTask = tasks[depIndex];
+                                const depEndY = 4 + depIndex * (32 + 12) + 16;
+                                const depEndX = (differenceInDays(parseISO(depTask.end), startDate) + 1) * zoom;
+
+                                // Path logic: Simple elbow curve or straight
+                                // From (depEndX, depEndY) to (taskStartX, taskY)
+                                const midX = depEndX + (taskStartX - depEndX) / 2;
+
+                                return (
+                                    <path
+                                        key={`${task.id}-${depId}`}
+                                        d={`M ${depEndX} ${depEndY} L ${midX} ${depEndY} L ${midX} ${taskY} L ${taskStartX} ${taskY}`}
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth="1.5"
+                                        className="text-slate-300 dark:text-slate-600"
+                                        markerEnd="url(#arrow)"
+                                    />
+                                );
+                            });
+                        })}
+                    </svg>
+
+                    {/* 4. TASKS BARS */}
                     <div className="pt-4 px-2 space-y-3 relative z-10">
                         {tasks.map((task) => {
                             // Safe Parsing

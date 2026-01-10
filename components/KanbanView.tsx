@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Task, TaskStatus } from '@/lib/types';
 import { motion } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
 interface KanbanViewProps {
     tasks: Task[];
@@ -86,12 +87,53 @@ export default function KanbanView({ tasks, onStatusChange }: KanbanViewProps) {
                                             ${draggingId === task.id ? 'opacity-50 rotate-3' : ''}
                                         `}
                                     >
-                                        <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 tracking-wider">{task.category}</div>
-                                        <div className="font-medium text-sm text-slate-800 dark:text-slate-100 leading-tight mb-2">{task.name}</div>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                                                {task.category}
+                                            </div>
+                                            {task.priority && (
+                                                <div className={cn(
+                                                    "text-[8px] uppercase px-1.5 py-0.5 rounded font-black tracking-tighter transition-all",
+                                                    task.priority === 'high' ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" :
+                                                        task.priority === 'medium' ? "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" :
+                                                            "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400"
+                                                )}>
+                                                    {task.priority}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-tight mb-2">
+                                            {task.name}
+                                        </div>
+
+                                        {/* SUBTASKS PROGRESS */}
+                                        {task.subtasks && task.subtasks.length > 0 && (
+                                            <div className="mb-3 space-y-1">
+                                                <div className="flex justify-between text-[9px] font-bold text-slate-400 uppercase">
+                                                    <span>Progreso</span>
+                                                    <span>{Math.round((task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100)}%</span>
+                                                </div>
+                                                <div className="h-1 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-emerald-500 transition-all duration-500"
+                                                        style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-t border-slate-50 dark:border-slate-800/50 pt-2">
-                                            <span>{task.end}</span>
+                                            <div className="flex items-center gap-2">
+                                                {task.assignee ? (
+                                                    <div className="w-5 h-5 rounded-full bg-slate-900 dark:bg-emerald-600 flex items-center justify-center text-[10px] font-bold text-white shadow-sm" title={task.assignee.name}>
+                                                        {task.assignee.name.charAt(0).toUpperCase()}
+                                                    </div>
+                                                ) : (
+                                                    <span className="font-mono">{task.end}</span>
+                                                )}
+                                            </div>
                                             {task.budget && (
-                                                <span className="font-mono font-medium text-emerald-600 dark:text-emerald-400">${task.budget.toLocaleString()}</span>
+                                                <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">${task.budget.toLocaleString()}</span>
                                             )}
                                         </div>
                                     </motion.div>

@@ -51,6 +51,15 @@ export const ProposeCalendarEventSchema = z.object({
     start: z.string(),
     end: z.string(),
 });
+export const ProposeMaterialOrderSchema = z.object({
+    vendor: z.string().optional(),
+    items: z.array(z.object({
+        description: z.string(),
+        requestedQuantity: z.number(),
+        unit: z.string().optional()
+    })),
+    notes: z.string().optional()
+});
 
 // Mapeo de herramientas para el LLM
 export const COPILOT_TOOLS = [
@@ -113,6 +122,11 @@ export const COPILOT_TOOLS = [
         name: "propose_calendar_event",
         description: "Propone la creación de un evento en Google Calendar.",
         schema: ProposeCalendarEventSchema
+    },
+    {
+        name: "propose_material_order",
+        description: "Genera una propuesta de pedido de materiales (bolsones, hierro, cemento, etc).",
+        schema: ProposeMaterialOrderSchema
     }
 ];
 

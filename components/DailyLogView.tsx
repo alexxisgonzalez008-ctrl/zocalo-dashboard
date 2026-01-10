@@ -11,7 +11,8 @@ import {
     Save,
     Trash2,
     StickyNote,
-    Download
+    Download,
+    BookOpen
 } from "lucide-react";
 import WeatherWidget from "./WeatherWidget";
 import PhotoUpload from "./PhotoUpload";
@@ -26,10 +27,11 @@ interface DailyLogViewProps {
     logs: LogEntry[];
     categories: string[];
     onSaveLog: (log: LogEntry) => void;
+    onDateChange?: (date: string) => void;
 }
 
-export default function DailyLogView({ currentDate, logs, categories, onSaveLog }: DailyLogViewProps) {
-    const [viewMode, setViewMode] = useState<'daily' | 'gallery'>('daily');
+export default function DailyLogView({ currentDate, logs, categories, onSaveLog, onDateChange }: DailyLogViewProps) {
+    const [viewMode, setViewMode] = useState<'daily' | 'gallery' | 'history'>('daily');
     // Local state for form
     const [weather, setWeather] = useState<LogEntry["weather"]>("sunny");
     const [notes, setNotes] = useState("");
@@ -40,6 +42,12 @@ export default function DailyLogView({ currentDate, logs, categories, onSaveLog 
     const [expAmount, setExpAmount] = useState("");
     const [expDesc, setExpDesc] = useState("");
     const [expCat, setExpCat] = useState(categories[0] || "");
+    const [expDate, setExpDate] = useState(currentDate);
+
+    // Sync expense date with current bitacora date by default
+    useEffect(() => {
+        setExpDate(currentDate);
+    }, [currentDate]);
 
     // Load existing log for current date
     useEffect(() => {
@@ -62,7 +70,7 @@ export default function DailyLogView({ currentDate, logs, categories, onSaveLog 
         if (!expAmount || !expDesc) return;
         const newExpense: Expense = {
             id: crypto.randomUUID(),
-            date: currentDate,
+            date: expDate,
             category: expCat,
             description: expDesc,
             amount: parseFloat(expAmount)
@@ -119,6 +127,15 @@ export default function DailyLogView({ currentDate, logs, categories, onSaveLog 
                             Diario
                         </button>
                         <button
+                            onClick={() => setViewMode('history')}
+                            className={cn(
+                                "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
+                                viewMode === 'history' ? "bg-white dark:bg-slate-700 text-emerald-600 dark:text-emerald-400 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                            )}
+                        >
+                            Historial
+                        </button>
+                        <button
                             onClick={() => setViewMode('gallery')}
                             className={cn(
                                 "px-4 py-1.5 rounded-lg text-xs font-bold transition-all",
@@ -153,13 +170,79 @@ export default function DailyLogView({ currentDate, logs, categories, onSaveLog 
 
             {viewMode === 'gallery' ? (
                 <PhotoGalleryView logs={logs} />
+            ) : viewMode === 'history' ? (
+                <div className="space-y-4">
+                    <div className="grid grid-cols-1 gap-4">
+                        {[...logs].sort((a, b) => b.date.localeCompare(a.date)).map((log) => (
+                            <Card
+                                key={log.id}
+                                className="hover:border-emerald-500/50 transition-all cursor-pointer group bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800"
+                                onClick={() => {
+                                    onDateChange?.(log.date);
+                                    setViewMode('daily');
+                                }}
+                            >
+                                <CardContent className="p-4 sm:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-500 group-hover:bg-emerald-50 dark:group-hover:bg-emerald-900/20 group-hover:text-emerald-600 transition-colors">
+                                            {log.weather === "sunny" && <Sun className="w-6 h-6" />}
+                                            {log.weather === "cloudy" && <Cloud className="w-6 h-6" />}
+                                            {log.weather === "rainy" && <CloudRain className="w-6 h-6" />}
+                                            {log.weather === "windy" && <Wind className="w-6 h-6" />}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white capitalize">
+                                                {format(new Date(log.date + 'T12:00:00'), "EEEE d 'de' MMMM", { locale: es })}
+                                            </h3>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-1 max-w-md">
+                                                {log.notes || "Sin observaciones registradas"}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                                        <div className="flex flex-col items-end">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Gastos</p>
+                                            <p className="font-mono font-bold text-slate-700 dark:text-slate-300">
+                                                ${(log.expenses?.reduce((s, e) => s + e.amount, 0) || 0).toLocaleString()}
+                                            </p>
+                                        </div>
+                                        <div className="flex -space-x-2">
+                                            {log.photos?.slice(0, 3).map((u, i) => (
+                                                <div key={i} className="w-8 h-8 rounded-lg border-2 border-white dark:border-slate-900 overflow-hidden bg-slate-100">
+                                                    <img src={u} alt="" className="w-full h-full object-cover" />
+                                                </div>
+                                            ))}
+                                            {(log.photos?.length || 0) > 3 && (
+                                                <div className="w-8 h-8 rounded-lg border-2 border-white dark:border-slate-900 bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-[10px] font-bold text-slate-500">
+                                                    +{(log.photos?.length || 0) - 3}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        ))}
+                        {logs.length === 0 && (
+                            <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800">
+                                <BookOpen className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-4" />
+                                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Sin registros</h3>
+                                <p className="text-sm text-slate-500">Aún no has guardado ninguna bitácora diaria.</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* LEFT COLUMN: Weather & Notes */}
                     <div className="space-y-6 md:col-span-2">
-                        <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800">
-                            <CardHeader className="pb-3">
-                                <CardTitle className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">Clima & Observaciones</CardTitle>
+                        <Card className="dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
+                            <CardHeader className="pb-3 border-b border-slate-50 dark:border-slate-800/50 mb-4">
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                    <div className="p-1.5 bg-blue-100 dark:bg-blue-900/30 rounded-md">
+                                        <Sun className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                    </div>
+                                    Condiciones & Registro
+                                </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-6">
                                 {/* Weather Widget */}
@@ -204,10 +287,12 @@ export default function DailyLogView({ currentDate, logs, categories, onSaveLog 
 
                     {/* RIGHT COLUMN: Expenses */}
                     <div className="md:col-span-1">
-                        <Card className="h-full flex flex-col dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+                        <Card className="h-full flex flex-col dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm">
                             <CardHeader className="pb-3 bg-slate-50/50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800">
-                                <CardTitle className="text-sm font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                                    <DollarSign className="w-4 h-4" />
+                                <CardTitle className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 flex items-center gap-2">
+                                    <div className="p-1.5 bg-emerald-100 dark:bg-emerald-900/30 rounded-md">
+                                        <DollarSign className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                                    </div>
                                     Gastos del Día
                                 </CardTitle>
                             </CardHeader>
@@ -231,7 +316,13 @@ export default function DailyLogView({ currentDate, logs, categories, onSaveLog 
                                         onChange={(e) => setExpDesc(e.target.value)}
                                     />
                                     <div className="flex gap-2">
-                                        <div className="relative flex-1">
+                                        <input
+                                            type="date"
+                                            className="flex-1 p-2 rounded border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"
+                                            value={expDate}
+                                            onChange={(e) => setExpDate(e.target.value)}
+                                        />
+                                        <div className="relative flex-[1.5]">
                                             <span className="absolute left-2 top-2 text-slate-400">$</span>
                                             <input
                                                 type="number"

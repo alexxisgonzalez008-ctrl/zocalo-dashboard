@@ -8,10 +8,10 @@ datasource db {
 }
 
 model CopilotConversation {
-  id        String           @id @default(uuid())
+  id        String            @id @default(uuid())
   projectId String
   userId    String
-  createdAt DateTime         @default(now())
+  createdAt DateTime          @default(now())
   messages  CopilotMessage[]
   proposals CopilotProposal[]
 }
@@ -37,8 +37,8 @@ model CopilotProposal {
   createdAt      DateTime            @default(now())
   confirmedAt    DateTime?
   lastResult     String?
-  conversation   CopilotConversation @relation(fields: [conversationId], references: [id])
   auditLogs      CopilotAuditLog[]
+  conversation   CopilotConversation @relation(fields: [conversationId], references: [id])
 }
 
 model CopilotAuditLog {
@@ -49,4 +49,39 @@ model CopilotAuditLog {
   payload    String?
   createdAt  DateTime        @default(now())
   proposal   CopilotProposal @relation(fields: [proposalId], references: [id])
+}
+
+model MaterialOrder {
+  id        String              @id @default(uuid())
+  projectId String
+  userId    String
+  vendor    String?
+  date      DateTime            @default(now())
+  status    String              @default("pending")
+  notes     String?
+  createdAt DateTime            @default(now())
+  updatedAt DateTime            @updatedAt
+  items     MaterialOrderItem[]
+}
+
+model MaterialOrderItem {
+  id                String        @id @default(uuid())
+  orderId           String
+  description       String
+  requestedQuantity Float
+  receivedQuantity  Float         @default(0)
+  unit              String?
+  order             MaterialOrder @relation(fields: [orderId], references: [id])
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  projectId String
+  userId    String
+  name      String
+  type      String
+  url       String
+  category  String
+  size      String
+  createdAt DateTime @default(now())
 }

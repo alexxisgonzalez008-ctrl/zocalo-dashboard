@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Bot, Send, X, MessageSquare, Loader2, Sparkles } from 'lucide-react';
+import { Bot, Send, X, MessageSquare, Loader2, Sparkles, RefreshCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import axios from 'axios';
 import { toast } from 'sonner';
@@ -27,6 +27,17 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
     }, [messages, loading]);
+
+    const handleClearChat = async () => {
+        if (!confirm("¿Deseas limpiar el historial de este chat?")) return;
+        try {
+            await axios.delete(`/api/copilot/chat?projectId=${projectId}`);
+            setMessages([]);
+            toast.success("Historial limpiado");
+        } catch (error) {
+            toast.error("Error al limpiar el historial");
+        }
+    };
 
     const handleSend = async () => {
         if (!input.trim() || loading) return;
@@ -65,6 +76,10 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
         try {
             const resp = await axios.post('/api/copilot/confirm', { proposalId, confirm: true });
             toast.success(resp.data.result.message || "Acción confirmada");
+
+            // Disparar evento para que otras partes de la UI se refresquen
+            window.dispatchEvent(new CustomEvent('islara-orders-update'));
+
             // Remove proposal from message
             setMessages(prev => prev.map(m => m.proposal?.id === proposalId ? { ...m, proposal: null, content: `✅ Propuesta ejecutada: ${resp.data.result.message}` } : m));
         } catch (error) {
@@ -110,13 +125,22 @@ export default function CopilotPanel({ projectId }: { projectId: string }) {
                                     <Bot className="w-5 h-5" />
                                 </div>
                                 <div>
-                                    <h3 className="text-sm font-bold dark:text-white leading-none">Islara Copilot</h3>
-                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Online • FunctionGemma</p>
+                                    <h3 className="text-sm font-bold dark:text-white leading-none">Islara AI</h3>
+                                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-wider">Online • Llama 3.1 Pro</p>
                                 </div>
                             </div>
-                            <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition-colors">
-                                <X className="w-5 h-5 text-slate-400" />
-                            </button>
+                            <div className="flex items-center gap-1">
+                                <button
+                                    onClick={handleClearChat}
+                                    title="Limpiar Chat"
+                                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition-colors text-slate-400"
+                                >
+                                    <RefreshCcw className="w-4 h-4" />
+                                </button>
+                                <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition-colors">
+                                    <X className="w-5 h-5 text-slate-400" />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Chat Messages */}

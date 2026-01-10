@@ -20,7 +20,8 @@ import {
     Calendar as CalendarIcon,
     LogOut,
     Home,
-    UserPlus
+    UserPlus,
+    Package
 } from "lucide-react";
 import ShareDialog from "./ShareDialog";
 import { db } from "@/lib/firebase";
@@ -39,7 +40,9 @@ import TaskEditDialog from "./TaskEditDialog";
 import AnalyticsView from "./AnalyticsView";
 import SettingsDialog from "./SettingsDialog";
 import ProjectSelector from "./ProjectSelector";
+import OrdersView from "./OrdersView";
 import { generatePDFReport } from "@/lib/pdf";
+import DocumentsView from "./DocumentsView";
 import { AnimatePresence, motion } from "framer-motion";
 import { ModeToggle } from "./ModeToggle";
 import { toast } from "sonner";
@@ -56,8 +59,10 @@ const NAV_TABS = [
     { id: 'gantt', label: 'Gantt', icon: <CalendarDays className="w-4 h-4" /> },
     { id: 'calendar', label: 'Agenda', icon: <CalendarIcon className="w-4 h-4" /> },
     { id: 'financial', label: 'Finanzas', icon: <Wallet className="w-4 h-4" /> },
+    { id: 'orders', label: 'Pedidos', icon: <Package className="w-4 h-4" /> },
     { id: 'analytics', label: 'Métricas', icon: <BarChart2 className="w-4 h-4" /> },
     { id: 'logs', label: 'Bitácora', icon: <BookOpen className="w-4 h-4" /> },
+    { id: 'documents', label: 'Documentos', icon: <FileText className="w-4 h-4" /> },
 ];
 import { useDashboardState } from "@/lib/hooks/useDashboardState";
 
@@ -77,6 +82,9 @@ export default function Dashboard() {
         handleUpdateTask,
         handleDeleteTask,
         handleStatusChange,
+        documents,
+        handleUploadDocument,
+        handleDeleteDocument,
         resetData,
         isLoaded
     } = useDashboardState(selectedProjectId, user);
@@ -87,7 +95,7 @@ export default function Dashboard() {
     const [searchTerm, setSearchTerm] = useState("");
     const [isSettingsOpen, setIsSettingsOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'kanban' | 'gantt' | 'financial' | 'analytics' | 'logs' | 'calendar'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'kanban' | 'gantt' | 'financial' | 'analytics' | 'logs' | 'calendar' | 'orders' | 'documents'>('overview');
 
     // Invitation Handling Logic
     useEffect(() => {
@@ -447,13 +455,26 @@ export default function Dashboard() {
                             <motion.div key="analytics" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                                 <AnalyticsView tasks={tasks} logs={logs} />
                             </motion.div>
-                        ) : (
+                        ) : activeTab === 'orders' ? (
+                            <motion.div key="orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <OrdersView projectId={selectedProjectId || ""} />
+                            </motion.div>
+                        ) : activeTab === 'logs' ? (
                             <motion.div key="logs" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                                 <DailyLogView
                                     currentDate={currentDate}
                                     logs={logs}
                                     categories={categories}
                                     onSaveLog={handleSaveLog}
+                                    onDateChange={setCurrentDate}
+                                />
+                            </motion.div>
+                        ) : (
+                            <motion.div key="documents" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                                <DocumentsView
+                                    documents={documents}
+                                    onUpload={handleUploadDocument}
+                                    onDelete={handleDeleteDocument}
                                 />
                             </motion.div>
                         )}

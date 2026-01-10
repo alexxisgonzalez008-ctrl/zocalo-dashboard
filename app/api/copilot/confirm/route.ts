@@ -68,6 +68,26 @@ async function executeCommit(toolName: string, args: any, userId: string, projec
         case "propose_daily_log_entry":
             console.log("COMMITTING DAILY LOG:", args);
             return { message: "Entrada de bitácora guardada", id: crypto.randomUUID() };
+        case "propose_material_order":
+            console.log("COMMITTING MATERIAL ORDER:", args);
+            const order = await prisma.materialOrder.create({
+                data: {
+                    projectId,
+                    userId,
+                    vendor: (args as any).vendor,
+                    notes: (args as any).notes,
+                    status: "pending",
+                    items: {
+                        create: (args as any).items.map((item: any) => ({
+                            description: item.description,
+                            requestedQuantity: item.requestedQuantity,
+                            unit: item.unit,
+                            receivedQuantity: 0
+                        }))
+                    }
+                }
+            });
+            return { message: `Pedido #${order.id.slice(0, 4)} creado correctamente`, id: order.id };
         default:
             return { message: "Acción ejecutada con éxito" };
     }

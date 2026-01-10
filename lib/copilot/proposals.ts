@@ -63,6 +63,13 @@ function generatePreview(toolCall: ToolCall) {
                 summary: `Cambios sugeridos para la tarea: ${toolCall.arguments.taskTitle || 'Tarea'}.`,
                 diff: toolCall.arguments
             };
+        case "propose_material_order":
+            const orderArgs = toolCall.arguments as any;
+            return {
+                title: "Nuevo Pedido de Materiales",
+                summary: `Pedido sugerido con ${orderArgs.items?.length || 0} ítems${orderArgs.vendor ? ` a ${orderArgs.vendor}` : ''}.`,
+                details: orderArgs.items?.map((i: any) => `- ${i.description}: ${i.requestedQuantity} ${i.unit || ''}`).join('\n')
+            };
         default:
             return {
                 title: "Acción Sugerida",

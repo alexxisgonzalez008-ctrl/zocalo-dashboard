@@ -16,6 +16,8 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
     });
     const [isLoaded, setIsLoaded] = useState(false);
     const [rainDays, setRainDays] = useState<string[]>([]);
+    const [documents, setDocuments] = useState<any[]>([]);
+    const [loadingDocs, setLoadingDocs] = useState(false);
 
     // 1. Initial Load and Realtime Sync from Firestore
     useEffect(() => {
@@ -37,11 +39,13 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
                     setProjectSettings(prev => ({ ...prev, title: "Proyecto Sin Nombre" }));
                 }
                 if (data.rainDays) setRainDays(data.rainDays);
+                if (data.documents) setDocuments(data.documents);
             } else {
                 // Initialize if project doesn't exist in Firestore
                 setTasks(INITIAL_TASKS);
                 setLogs([]);
                 setRainDays([]);
+                setDocuments([]);
                 setProjectSettings({
                     title: "Nuevo Proyecto",
                     subtitle: "Gestión de Obra",
@@ -55,6 +59,26 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
         });
 
         return () => unsubscribe();
+    }, [selectedProjectId]);
+
+    // 1b. Fetch Documents from Prisma API
+    useEffect(() => {
+        if (!selectedProjectId) return;
+
+        const fetchDocs = async () => {
+            setLoadingDocs(true);
+            try {
+                const res = await fetch(`/api/documents?projectId=${selectedProjectId}`);
+                const data = await res.json();
+                setDocuments(data);
+            } catch (error) {
+                console.error("Error fetching documents:", error);
+            } finally {
+                setLoadingDocs(false);
+            }
+        };
+
+        fetchDocs();
     }, [selectedProjectId]);
 
     // Helper to update Firestore
@@ -132,6 +156,36 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
         await saveToFirestore({ settings });
     };
 
+    const handleUploadDocument = async (docData: any) => {
+        if (!user || !selectedProjectId) return;
+        try {
+            const res = await fetch('/api/documents', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    ...docData,
+                    projectId: selectedProjectId
+                })
+            });
+            const newDoc = await res.json();
+            setDocuments(prev => [newDoc, ...prev]);
+            toast.success("Documento registrado");
+        } catch (error) {
+            toast.error("Error al registrar documento");
+        }
+    };
+
+    const handleDeleteDocument = async (id: string) => {
+        if (!user) return;
+        try {
+            await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+            setDocuments(prev => prev.filter(d => d.id !== id));
+            toast.success("Documento eliminado");
+        } catch (error) {
+            toast.error("Error al eliminar documento");
+        }
+    };
+
     const resetData = async () => {
         if (selectedProjectId && confirm("¿Borrar todos los datos de este proyecto?")) {
             await saveToFirestore({
@@ -155,6 +209,9 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
         handleUpdateTask,
         handleDeleteTask,
         handleStatusChange,
+        documents,
+        handleUploadDocument,
+        handleDeleteDocument,
         resetData,
         isLoaded
     };

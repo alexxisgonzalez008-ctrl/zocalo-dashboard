@@ -92,6 +92,38 @@ export default function FinancialView({ tasks, logs, settingsBudget }: Financial
                         </p>
                     </CardContent>
                 </Card>
+
+                {/* PROFITABILITY CARD (Odoo-like) */}
+                <Card className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5">
+                        <TrendingUp className="w-12 h-12 text-blue-500" />
+                    </div>
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-sm font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            Índice de Rentabilidad
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className={cn(
+                            "text-xl xl:text-2xl font-black",
+                            spendingProgress > 90 ? "text-red-600" : spendingProgress > 70 ? "text-amber-600" : "text-emerald-600"
+                        )}>
+                            {totalBudget > 0 ? (100 - spendingProgress).toFixed(1) : 0}%
+                        </div>
+                        <div className="flex items-center gap-2 mt-2">
+                            <div className="h-1.5 flex-1 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                    className={cn(
+                                        "h-full transition-all duration-500",
+                                        spendingProgress > 90 ? "bg-red-500" : spendingProgress > 70 ? "bg-amber-500" : "bg-emerald-500"
+                                    )}
+                                    style={{ width: `${Math.min(100, 100 - spendingProgress)}%` }}
+                                />
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-2 italic">Margen proyectado basado en ejecución actual</p>
+                    </CardContent>
+                </Card>
             </div>
 
             {/* CATEGORY BREAKDOWN */}

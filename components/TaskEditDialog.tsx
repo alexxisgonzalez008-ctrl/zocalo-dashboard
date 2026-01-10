@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { differenceInDays } from "date-fns";
-import { X, Save, DollarSign, Calendar, Tag } from "lucide-react";
+import { X, Save, DollarSign, Calendar, Tag, Plus } from "lucide-react";
 import { Task } from "@/lib/types";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -21,6 +21,10 @@ export default function TaskEditDialog({ task, tasks, categories, isOpen, onClos
     const [budget, setBudget] = useState(task?.budget?.toString() || "0");
     const [dependencies, setDependencies] = useState<string[]>(task?.dependencies || []);
     const [locked, setLocked] = useState(task?.locked || false);
+    const [priority, setPriority] = useState<"low" | "medium" | "high">(task?.priority || "medium");
+    const [assigneeName, setAssigneeName] = useState(task?.assignee?.name || "");
+    const [subtasks, setSubtasks] = useState(task?.subtasks || []);
+    const [timeEntries, setTimeEntries] = useState(task?.timeEntries || []);
 
     useEffect(() => {
         if (isOpen) {
@@ -31,6 +35,10 @@ export default function TaskEditDialog({ task, tasks, categories, isOpen, onClos
             setBudget(task?.budget?.toString() || "0");
             setDependencies(task?.dependencies || []);
             setLocked(task?.locked || false);
+            setPriority(task?.priority || "medium");
+            setAssigneeName(task?.assignee?.name || "");
+            setSubtasks(task?.subtasks || []);
+            setTimeEntries(task?.timeEntries || []);
         }
     }, [isOpen, task]);
 
@@ -57,7 +65,11 @@ export default function TaskEditDialog({ task, tasks, categories, isOpen, onClos
             end,
             budget: parseFloat(budget) || 0,
             dependencies,
-            locked
+            locked,
+            priority,
+            assignee: assigneeName ? { name: assigneeName } : undefined,
+            subtasks,
+            timeEntries
         });
         onClose();
     };
@@ -171,6 +183,132 @@ export default function TaskEditDialog({ task, tasks, categories, isOpen, onClos
                                         value={budget}
                                         onChange={e => setBudget(e.target.value)}
                                     />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-500 uppercase">Prioridad</label>
+                                    <select
+                                        className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm"
+                                        value={priority}
+                                        onChange={e => setPriority(e.target.value as any)}
+                                    >
+                                        <option value="low">Baja</option>
+                                        <option value="medium">Media</option>
+                                        <option value="high">Alta</option>
+                                    </select>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-500 uppercase">Responsable</label>
+                                    <input
+                                        type="text"
+                                        placeholder="Nombre..."
+                                        className="w-full p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm"
+                                        value={assigneeName}
+                                        onChange={e => setAssigneeName(e.target.value)}
+                                    />
+                                </div>
+                            </div>
+
+                            {/* TIMESHEETS MANAGER */}
+                            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <label className="text-xs font-semibold text-slate-500 uppercase flex items-center justify-between">
+                                    <span>Registro de Horas (Timesheets)</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setTimeEntries([...timeEntries, { id: crypto.randomUUID(), date: new Date().toISOString().split('T')[0], hours: 0, userId: "me" }])}
+                                        className="text-blue-600 hover:text-blue-700 flex items-center gap-1 normal-case font-bold"
+                                    >
+                                        <Plus className="w-3 h-3" /> Registrar
+                                    </button>
+                                </label>
+                                <div className="space-y-2">
+                                    {timeEntries.map((te, idx) => (
+                                        <div key={te.id} className="flex gap-2 items-center bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
+                                            <input
+                                                type="date"
+                                                className="bg-transparent border-none p-0 text-xs focus:ring-0 outline-none w-28 dark:text-slate-200"
+                                                value={te.date}
+                                                onChange={e => {
+                                                    const next = [...timeEntries];
+                                                    next[idx].date = e.target.value;
+                                                    setTimeEntries(next);
+                                                }}
+                                            />
+                                            <div className="flex items-center gap-1 flex-1 px-2 border-l border-slate-200 dark:border-slate-700">
+                                                <input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    className="bg-transparent border-none p-0 text-sm focus:ring-0 outline-none w-10 font-bold dark:text-slate-100 placeholder:text-slate-300"
+                                                    value={te.hours || ""}
+                                                    onChange={e => {
+                                                        const next = [...timeEntries];
+                                                        next[idx].hours = parseFloat(e.target.value) || 0;
+                                                        setTimeEntries(next);
+                                                    }}
+                                                />
+                                                <span className="text-[10px] text-slate-400">hrs</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setTimeEntries(timeEntries.filter(e => e.id !== te.id))}
+                                                className="text-slate-300 hover:text-red-500 transition-colors"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {timeEntries.length === 0 && <p className="text-[10px] text-slate-400 italic text-center py-2">No hay horas registradas aún.</p>}
+                                </div>
+                            </div>
+
+                            {/* SUBTASKS MANAGER */}
+                            <div className="space-y-2 pt-4 border-t border-slate-100 dark:border-slate-800">
+                                <label className="text-xs font-semibold text-slate-500 uppercase flex items-center justify-between">
+                                    <span>Subtareas</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setSubtasks([...subtasks, { id: crypto.randomUUID(), name: "", completed: false }])}
+                                        className="text-emerald-600 hover:text-emerald-700 flex items-center gap-1 normal-case font-bold"
+                                    >
+                                        <Plus className="w-3 h-3" /> Añadir
+                                    </button>
+                                </label>
+                                <div className="space-y-2">
+                                    {subtasks.map((st, idx) => (
+                                        <div key={st.id} className="flex gap-2 items-center group">
+                                            <input
+                                                type="checkbox"
+                                                checked={st.completed}
+                                                onChange={e => {
+                                                    const next = [...subtasks];
+                                                    next[idx].completed = e.target.checked;
+                                                    setSubtasks(next);
+                                                }}
+                                                className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                            <input
+                                                type="text"
+                                                placeholder="Descripción de la subtarea..."
+                                                className="flex-1 bg-transparent border-none p-0 text-sm focus:ring-0 outline-none dark:text-slate-200 placeholder:text-slate-400"
+                                                value={st.name}
+                                                onChange={e => {
+                                                    const next = [...subtasks];
+                                                    next[idx].name = e.target.value;
+                                                    setSubtasks(next);
+                                                }}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setSubtasks(subtasks.filter(s => s.id !== st.id))}
+                                                className="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <X className="w-3 h-3" />
+                                            </button>
+                                        </div>
+                                    ))}
+                                    {subtasks.length === 0 && <p className="text-[10px] text-slate-400 italic">No hay subtareas definidas.</p>}
                                 </div>
                             </div>
 
