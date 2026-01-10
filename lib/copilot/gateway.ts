@@ -1,7 +1,6 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import { LLMResponse, CopilotMessage, ToolCall } from './types';
 
-// Gemini Configuration
 export async function invokeLLMGateway(payload: {
     userId: string;
     projectId: string;
@@ -14,11 +13,23 @@ export async function invokeLLMGateway(payload: {
         return { assistantText: "Error de configuración: No se encontró la GEMINI_API_KEY. Asegúrate de tenerla en tu archivo .env (local) o en las variables de Vercel (producción)." };
     }
 
-    const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+    const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
 
-    const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
-        systemInstruction: `You are Asistente, a professional construction assistant.
+    try {
+        // Transform tools for the new GenAI SDK
+        const tools = payload.tools.map(t => ({
+            function_declarations: [{
+                name: t.function.name,
+                description: t.function.description,
+                parameters: {
+                    type: "object",
+                    properties: t.function.parameters.properties,
+                    required: t.function.parameters.required
+                } as any
+            }]
+        }));
+
+        const systemInstruction = `You are Asistente, a professional construction assistant.
 Your primary goal is to help the user manage the project by using the available tools.
 
 STRICT INSTRUCTIONS:
@@ -28,33 +39,26 @@ STRICT INSTRUCTIONS:
 4. If the latest message is "agrega 3 sacos de piedra", and the previous was "2 bolsas de arena", you MUST only order 3 sacos de piedra.
 5. If the user is just chatting, respond normally.
 
-Current Project ID: ${payload.projectId}`,
-    });
-
-    try {
-        // Transformar herramientas para Gemini
-        const geminiTools = [
-            {
-                functionDeclarations: payload.tools.map(t => ({
-                    name: t.function.name,
-                    description: t.function.description,
-                    parameters: t.function.parameters
-                }))
-            }
-        ];
-
-        const chat = model.startChat({
-            history: payload.messages.slice(0, -1).map(m => ({
-                role: m.role === 'user' ? 'user' : 'model',
-                parts: [{ text: m.content }]
-            })),
-            tools: geminiTools as any,
-        });
+Current Project ID: ${payload.projectId}`;
 
         const lastMessage = payload.messages[payload.messages.length - 1].content;
-        const result = await chat.sendMessage(lastMessage);
-        const response = result.response;
-        const call = response.functionCalls()?.[0];
+        const history = payload.messages.slice(0, -1).map(m => ({
+            role: m.role === 'user' ? 'user' : 'model',
+            parts: [{ text: m.content }]
+        }));
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: lastMessage,
+            config: {
+                systemInstruction: systemInstruction,
+            } as any,
+            tools: tools as any
+        });
+
+        const candidate = response.candidates?.[0];
+        const parts = candidate?.content?.parts;
+        const call = parts?.find(p => p.functionCall)?.functionCall;
 
         if (call) {
             return {
@@ -65,16 +69,17 @@ Current Project ID: ${payload.projectId}`,
             };
         }
 
-        const text = response.text();
-        return { assistantText: text };
+        const textPart = parts?.find(p => p.text)?.text;
+        const text = textPart || (response as any).text || "No se recibió respuesta de texto del modelo.";
+        return { assistantText: text as string };
 
     } catch (error: any) {
-        console.error("Gemini API Error:", error);
+        console.error("Gemini 3 API Error:", error);
 
         if (error.message?.includes("API_KEY_INVALID")) {
             return { assistantText: "Error de autenticación: La clave API de Gemini es inválida. Por favor, verifícala en Vercel." };
         }
 
-        return { assistantText: `Error de la IA: ${error.message}. Por favor, intenta de nuevo en unos segundos.` };
+        return { assistantText: `Error de la IA (Gemini 3): ${error.message}. Por favor, intenta de nuevo en unos segundos.` };
     }
 }
