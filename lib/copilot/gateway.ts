@@ -16,7 +16,7 @@ export async function invokeLLMGateway(payload: {
     }
 
     const model = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-1.5-flash-latest",
         systemInstruction: `You are Islara AI, a professional construction assistant.
 Your primary goal is to help the user manage the project by using the available tools.
 
