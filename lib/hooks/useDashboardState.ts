@@ -47,6 +47,10 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
                         googleClientId: projectData.googleClientId,
                         googleApiKey: projectData.googleApiKey
                     });
+                    // Load rainDays from Firestore
+                    if (Array.isArray(projectData.rainDays)) {
+                        setRainDays(projectData.rainDays);
+                    }
                 }
 
                 if (Array.isArray(tasksData)) setTasks(tasksData.map((t: any) => ({
@@ -121,7 +125,16 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
         setRainDays(newRainDays);
         setTasks(newTasks);
 
-        // Note: Currently rainDays are handled locally as they don't have a Prisma model yet
+        // Persist rainDays to Firestore
+        if (selectedProjectId) {
+            try {
+                const projectDocRef = doc(db, 'projects_list', selectedProjectId);
+                await setDoc(projectDocRef, { rainDays: newRainDays }, { merge: true });
+            } catch (error) {
+                console.error("Error saving rainDays:", error);
+            }
+        }
+
         toast.info(rainDays.includes(date) ? "Día de lluvia eliminado" : "Día de lluvia registrado");
     };
 
