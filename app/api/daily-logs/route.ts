@@ -8,7 +8,10 @@ const DailyLogSchema = z.object({
     projectId: z.string(),
     date: z.string(),
     weather: z.string().optional(),
-    notes: z.string()
+    notes: z.string().optional().default(""),
+    // Frontend sends these but we handle them separately or ignore if not in DB schema
+    photos: z.array(z.string()).optional(),
+    expenses: z.array(z.any()).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -24,6 +27,7 @@ export async function GET(req: NextRequest) {
 
         return NextResponse.json(logs);
     } catch (error: any) {
+        console.error("DailyLog GET Error:", error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
@@ -38,7 +42,7 @@ export async function POST(req: NextRequest) {
             userId,
             date: new Date(body.date),
             weather: body.weather,
-            notes: body.notes
+            notes: body.notes || ""
         };
 
         let log;
@@ -46,7 +50,7 @@ export async function POST(req: NextRequest) {
             log = await prisma.dailyLog.upsert({
                 where: { id: body.id },
                 update: data,
-                create: data
+                create: { id: body.id, ...data }
             });
         } else {
             log = await prisma.dailyLog.create({ data });
@@ -54,6 +58,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(log);
     } catch (error: any) {
+        console.error("DailyLog POST Error:", error);
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 }
+
