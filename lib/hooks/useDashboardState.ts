@@ -34,8 +34,20 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
                 const logsRes = await fetch(`/api/daily-logs?projectId=${selectedProjectId}`);
                 const logsData = await logsRes.json();
 
-                // TODO: Fetch settings and rainDays from a dedicated project API if needed
-                // For now we keep settings and rainDays as local/mocked or expand the API
+                // Fetch Project Settings from Firestore (projects_list collection)
+                const projectDocRef = doc(db, 'projects_list', selectedProjectId);
+                const projectSnap = await getDoc(projectDocRef);
+                if (projectSnap.exists()) {
+                    const projectData = projectSnap.data();
+                    setProjectSettings({
+                        title: projectData.name || "...",
+                        subtitle: projectData.description || "Gestión de Obra",
+                        totalBudget: projectData.totalBudget || 0,
+                        googleCalendarId: projectData.googleCalendarId,
+                        googleClientId: projectData.googleClientId,
+                        googleApiKey: projectData.googleApiKey
+                    });
+                }
 
                 if (Array.isArray(tasksData)) setTasks(tasksData.map((t: any) => ({
                     ...t,
@@ -178,6 +190,24 @@ export function useDashboardState(selectedProjectId: string | null, user: any) {
 
     const updateSettings = async (settings: ProjectSettings) => {
         setProjectSettings(settings);
+        // Persist to Firestore
+        if (selectedProjectId) {
+            try {
+                const projectDocRef = doc(db, 'projects_list', selectedProjectId);
+                await setDoc(projectDocRef, {
+                    name: settings.title,
+                    description: settings.subtitle,
+                    totalBudget: settings.totalBudget,
+                    googleCalendarId: settings.googleCalendarId,
+                    googleClientId: settings.googleClientId,
+                    googleApiKey: settings.googleApiKey
+                }, { merge: true });
+                toast.success("Configuración guardada");
+            } catch (error) {
+                console.error("Error saving settings:", error);
+                toast.error("Error al guardar configuración");
+            }
+        }
     };
 
     const handleUploadDocument = async (docData: any) => {
