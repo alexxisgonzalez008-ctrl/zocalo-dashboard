@@ -14,10 +14,18 @@ const TaskSchema = z.object({
     status: z.string(),
     priority: z.string().optional(),
     isMilestone: z.boolean().optional(),
-    budget: z.number().optional(),
-    cost: z.number().optional(),
+    budget: z.number().optional().nullable(),
+    cost: z.number().optional().nullable(),
     locked: z.boolean().optional(),
-    durationWorkdays: z.number().optional(),
+    durationWorkdays: z.number().optional().nullable(),
+    // Allow extra fields that come from the frontend but are not stored
+    createdAt: z.string().optional(),
+    updatedAt: z.string().optional(),
+    userId: z.string().optional(),
+    assignee: z.any().optional(),
+    subtasks: z.any().optional(),
+    timeEntries: z.any().optional(),
+    dependencies: z.any().optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -52,10 +60,10 @@ export async function POST(req: NextRequest) {
             status: body.status,
             priority: body.priority || "medium",
             isMilestone: body.isMilestone || false,
-            budget: body.budget,
-            cost: body.cost,
+            budget: body.budget ?? undefined,
+            cost: body.cost ?? undefined,
             locked: body.locked || false,
-            durationWorkdays: body.durationWorkdays
+            durationWorkdays: body.durationWorkdays ?? undefined
         };
 
         let task;
@@ -63,7 +71,7 @@ export async function POST(req: NextRequest) {
             task = await prisma.task.upsert({
                 where: { id: body.id },
                 update: data,
-                create: data
+                create: { id: body.id, ...data }
             });
         } else {
             task = await prisma.task.create({ data });
@@ -71,6 +79,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(task);
     } catch (error: any) {
+        console.error("Task API Error:", error);
         return NextResponse.json({ error: error.message }, { status: 400 });
     }
 }
+
