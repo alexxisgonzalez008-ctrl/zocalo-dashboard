@@ -22,7 +22,8 @@ const googleProvider = new GoogleAuthProvider();
 
 // Google Calendar Credentials (Global Defaults)
 export const GOOGLE_CALENDAR_CLIENT_ID = "97657199919-hldrj62m5h8q4p47k6do5dm2cjj0hnih.apps.googleusercontent.com";
-export const GOOGLE_CALENDAR_API_KEY = "AIzaSyCD9O4q1cNyMonzPZm9OElhz7BtOed9H_w";
+// Usar la API Key del proyecto Firebase para evitar error de "different projects"
+export const GOOGLE_CALENDAR_API_KEY = firebaseConfig.apiKey;
 
 // Request calendar access during initial login
 googleProvider.addScope('https://www.googleapis.com/auth/calendar.events');
