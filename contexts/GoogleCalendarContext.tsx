@@ -76,7 +76,7 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
         try {
             const calendarId = settings.googleCalendarId || 'primary';
             // Use timeMax/timeMin with single events expanded
-            let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}&singleEvents=true&orderBy=startTime`;
+            let url = `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?singleEvents=true&orderBy=startTime`;
 
             if (timeMin) url += `&timeMin=${encodeURIComponent(timeMin)}`;
             if (timeMax) url += `&timeMax=${encodeURIComponent(timeMax)}`;
@@ -166,7 +166,7 @@ export function GoogleCalendarProvider({ children, settings }: { children: React
             console.log("Create event body:", body);
 
             const response = await fetch(
-                `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events?key=${apiKey}`,
+                `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calendarId)}/events`,
                 {
                     method: "POST",
                     headers: {
