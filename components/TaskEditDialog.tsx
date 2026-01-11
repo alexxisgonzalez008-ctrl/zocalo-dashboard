@@ -52,11 +52,40 @@ export default function TaskEditDialog({ task, tasks, categories, isOpen, onClos
         );
     };
 
+    // Generate a sequential task ID based on category
+    const generateSequentialId = (categoryName: string): string => {
+        // Map category names to prefixes
+        const prefixMap: Record<string, string> = {
+            '1. PRELIMINARES': 'PRL',
+            '2. FUNDACIONES': 'FUN',
+            '3. EST Y MUROS': 'EST',
+            '4. EST PA + INST PB': 'EPA',
+            '5. CUBIERTAS E INST': 'CUB',
+            '6. REV Y CONTRAPISOS': 'REV',
+            '7. TERMINACIONES FINAS': 'TER',
+            '8. CIERRE Y ENTREGA': 'CIE'
+        };
+
+        const prefix = prefixMap[categoryName] || 'TSK';
+
+        // Find existing tasks in this category and get the highest number
+        const categoryTasks = tasks.filter(t => t.category === categoryName);
+        const existingNumbers = categoryTasks
+            .map(t => {
+                const match = t.id.match(new RegExp(`^${prefix}-(\\d+)$`));
+                return match ? parseInt(match[1], 10) : 0;
+            })
+            .filter(n => n > 0);
+
+        const nextNumber = existingNumbers.length > 0 ? Math.max(...existingNumbers) + 1 : 1;
+        return `${prefix}-${String(nextNumber).padStart(3, '0')}`;
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave({
             ...task,
-            id: task?.id || crypto.randomUUID(),
+            id: task?.id || generateSequentialId(category),
             category: category,
             status: task?.status || "pending",
             days: differenceInDays(new Date(end), new Date(start)) + 1,
